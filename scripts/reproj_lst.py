@@ -6,7 +6,7 @@ import xarray as xr
 from quartz.aggregate import aggregate
 from quartz.projection.equirectangular import EquirectangularProjection
 
-from core.monitor import Chrono
+from core.monitor import Chrono, RAM
 
 src = Path("/mnt/ceph/proj/USINE/LST/LST/TESTING__input_ds.nc")
 dst = Path("/mnt/ceph/proj/USINE/LST/LST/TESTING__reproj_ds.nc")
@@ -14,6 +14,7 @@ dst = Path("/mnt/ceph/proj/USINE/LST/LST/TESTING__reproj_ds.nc")
 ds = xr.open_dataset(src)
 
 with Chrono("Reprojecting LST dataset"):
+# with RAM("Reprojecting LST dataset"):
 
     # Compute bounding box from geolocation arrays
     lat = ds["latitude"].values
