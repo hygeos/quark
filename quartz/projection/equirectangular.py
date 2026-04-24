@@ -2,7 +2,7 @@ import numpy as np
 from typing import Union, Optional
 
 class EquirectangularProjection:
-    def __init__(self, width: int, height: int, area: Union[dict, list] = None):
+    def __init__(self, width: int, height: int, area: Union[dict, list, None] = None):
         """
         Initialize an equirectangular projection with custom area bounds.
         
