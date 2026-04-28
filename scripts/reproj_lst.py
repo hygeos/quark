@@ -45,7 +45,9 @@ with Chrono("Reprojecting LST dataset"):
 
     mode = "simple"
     # mode = "kahan"
-    ssfactor = 1
+    ssfactor = 2
+    subpxmode = "constant"
+    px_width = "50m"
 
     agg = Aggregator(
         projection=projection,
@@ -57,6 +59,8 @@ with Chrono("Reprojecting LST dataset"):
         sum_method=mode,
         # skipna=True,
         supersampling=ssfactor,
+        subpixel_mode=subpxmode,
+        pixel_width=px_width,
         return_counts=True,
         return_sums=False,
         dtype=np.float32,
@@ -64,7 +68,7 @@ with Chrono("Reprojecting LST dataset"):
     
     result = agg.compute()
 
-    dst = dst.parent / (dst.stem + f"__acc_{mode}__ss_{ssfactor}.nc")
+    dst = dst.parent / (dst.stem + f"__acc_{mode}__ss_{ssfactor}__{subpxmode}__{px_width}.nc")
 
     log.info(f"Saving result to {dst}...")
     result.to_netcdf(dst)

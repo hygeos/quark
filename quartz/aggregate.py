@@ -47,6 +47,8 @@ class Aggregator:
         sum_method: Literal["simple", "kahan"] = "simple",
         skipna: bool = True,
         supersampling: int = 1,
+        pixel_width: str | None = None,
+        subpixel_mode: Literal["spatial", "constant"] | None = None,
         return_counts: bool = False,
         return_sums: bool = False,
         dtype=None,
@@ -71,7 +73,16 @@ class Aggregator:
         skipna : bool
             Skip NaN/inf values
         supersampling : int
-            Sub-pixel sampling factor (must be 1 for now)
+            Sub-pixel sampling factor (1, 2, or 3)
+        pixel_width : str | None
+            Pixel width for constant-spacing subpixel mode (e.g., "1km", "500m").
+            If provided, uses constant spacing instead of spatial neighbor-based.
+            Triggers 'constant' subpixel mode automatically.
+        subpixel_mode : {"spatial", "constant"} | None
+            Subpixel coordinate computation mode:
+            - 'spatial': Use actual neighbor coordinates (adaptive, default)
+            - 'constant': Use fixed pixel_width spacing (uniform)
+            If None, auto-detected from pixel_width parameter.
         return_counts : bool
             Include count arrays in output
         return_sums : bool
@@ -89,12 +100,38 @@ class Aggregator:
         if supersampling not in (1, 2, 3):
             raise ValueError("supersampling must be 1, 2, or 3.")
         
+        # Parse pixel_width and determine mode
+        pixel_width_m = None
+        if pixel_width is not None:
+            pixel_width_m = self._parse_pixel_width(pixel_width)
+        
+        # Auto-detect or validate subpixel mode
+        if subpixel_mode is None:
+            # Auto-detect from pixel_width
+            if pixel_width_m is not None:
+                subpixel_mode = "constant"
+            else:
+                subpixel_mode = "spatial"
+        else:
+            # Explicit mode provided - validate consistency
+            if pixel_width_m is not None and subpixel_mode == "spatial":
+                raise ValueError(
+                    "Conflicting parameters: pixel_width is provided but subpixel_mode='spatial'. "
+                    "Either remove pixel_width to use spatial mode, or set subpixel_mode='constant'."
+                )
+            if pixel_width_m is None and subpixel_mode == "constant":
+                raise ValueError(
+                    "subpixel_mode='constant' requires pixel_width parameter (e.g., pixel_width='1km')."
+                )
+        
         self.projection = projection
         self.lat_name = lat_name
         self.lon_name = lon_name
         self.skipna = skipna
         self.sum_method = sum_method
         self.supersampling = supersampling
+        self.subpixel_mode = subpixel_mode
+        self.pixel_width_m = pixel_width_m
         self.return_counts = return_counts
         self.return_sums = return_sums
         self.dtype = dtype
@@ -173,6 +210,56 @@ class Aggregator:
         """Validate geolocation for all datasets."""
         for ds in datasets:
             _validate_geolocation(ds, self.lat_name, self.lon_name)
+    
+    @staticmethod
+    def _parse_pixel_width(pixel_width: str) -> float:
+        """
+        Parse pixel width string to meters.
+        
+        Parameters
+        ----------
+        pixel_width : str
+            Pixel width string (e.g., "1km", "500m", "0.3km")
+        
+        Returns
+        -------
+        float
+            Pixel width in meters
+        
+        Examples
+        --------
+        >>> _parse_pixel_width("1km")
+        1000.0
+        >>> _parse_pixel_width("500m")
+        500.0
+        >>> _parse_pixel_width("0.5km")
+        500.0
+        """
+        pixel_width = pixel_width.strip().lower()
+        
+        if pixel_width.endswith("km"):
+            try:
+                value = float(pixel_width[:-2])
+                return value * 1000.0
+            except ValueError:
+                raise ValueError(
+                    f"Invalid pixel_width format: '{pixel_width}'. "
+                    f"Expected format: '1km' or '500m'."
+                )
+        elif pixel_width.endswith("m"):
+            try:
+                value = float(pixel_width[:-1])
+                return value
+            except ValueError:
+                raise ValueError(
+                    f"Invalid pixel_width format: '{pixel_width}'. "
+                    f"Expected format: '1km' or '500m'."
+                )
+        else:
+            raise ValueError(
+                f"Invalid pixel_width format: '{pixel_width}'. "
+                f"Must end with 'km' or 'm' (e.g., '1km' or '500m')."
+            )
     
     def _compute_subpixel_offset(self, i: int, j: int) -> tuple[float, float]:
         """
@@ -276,7 +363,47 @@ class Aggregator:
         offset_x: float,
     ) -> tuple[np.ndarray, np.ndarray, tuple[slice, slice]]:
         """
-        Compute interpolated subpixel coordinates.
+        Compute interpolated subpixel coordinates (dispatcher method).
+        
+        Dispatches to either spatial or constant mode based on self.subpixel_mode.
+        
+        Parameters
+        ----------
+        lat : np.ndarray, shape (ny, nx)
+            Latitude grid (2D)
+        lon : np.ndarray, shape (ny, nx)
+            Longitude grid (2D)
+        offset_y : float
+            Fractional offset in y direction
+        offset_x : float
+            Fractional offset in x direction
+        
+        Returns
+        -------
+        lat_sub : np.ndarray
+            Interpolated latitude coordinates
+        lon_sub : np.ndarray
+            Interpolated longitude coordinates
+        values_slices : (slice, slice)
+            Slices to apply to values arrays to match lat_sub/lon_sub shape
+        """
+        if self.subpixel_mode == "constant":
+            return self._interpolate_subpixel_coords_constant(lat, lon, offset_y, offset_x)
+        else:  # spatial mode
+            return self._interpolate_subpixel_coords_spatial(lat, lon, offset_y, offset_x)
+    
+    def _interpolate_subpixel_coords_spatial(
+        self,
+        lat: np.ndarray,
+        lon: np.ndarray,
+        offset_y: float,
+        offset_x: float,
+    ) -> tuple[np.ndarray, np.ndarray, tuple[slice, slice]]:
+        """
+        Compute interpolated subpixel coordinates using spatial neighbor-based method.
+        
+        Uses actual neighbor coordinates for adaptive spacing.
+        Excludes edges where neighbors are unavailable.
         
         Parameters
         ----------
@@ -325,6 +452,60 @@ class Aggregator:
         lat_sub = np.clip(lat_sub, -90.0, 90.0)
         
         return lat_sub, lon_sub, center_slices
+    
+    def _interpolate_subpixel_coords_constant(
+        self,
+        lat: np.ndarray,
+        lon: np.ndarray,
+        offset_y: float,
+        offset_x: float,
+    ) -> tuple[np.ndarray, np.ndarray, tuple[slice, slice]]:
+        """
+        Compute subpixel coordinates using constant pixel width.
+        
+        Uses fixed meter-based spacing instead of adaptive neighbor-based spacing.
+        Allows processing entire grid (no edge exclusion).
+        
+        Parameters
+        ----------
+        lat : np.ndarray, shape (ny, nx)
+            Latitude grid (2D)
+        lon : np.ndarray, shape (ny, nx)
+            Longitude grid (2D)
+        offset_y : float
+            Fractional offset in y direction
+        offset_x : float
+            Fractional offset in x direction
+        
+        Returns
+        -------
+        lat_sub : np.ndarray
+            Interpolated latitude coordinates (same shape as input)
+        lon_sub : np.ndarray
+            Interpolated longitude coordinates (same shape as input)
+        values_slices : (slice, slice)
+            Slices for values array (full grid: [:, :])
+        """
+        # Type assertion for constant mode
+        assert self.pixel_width_m is not None, "pixel_width_m must be set for constant mode"
+        
+        # Convert pixel width from meters to degrees
+        # Latitude: 1 degree ≈ 111,320 meters (constant)
+        delta_lat_deg = self.pixel_width_m / 111320.0
+        
+        # Longitude: Constant (no latitude dependency per user request)
+        # Using same conversion as latitude (valid at equator)
+        delta_lon_deg = self.pixel_width_m / 111320.0
+        
+        # Apply offsets
+        lat_sub = lat + offset_y * delta_lat_deg
+        lon_sub = lon + offset_x * delta_lon_deg
+        
+        # Clamp latitude to valid range
+        lat_sub = np.clip(lat_sub, -90.0, 90.0)
+        
+        # Full grid - no slicing needed
+        return lat_sub, lon_sub, (slice(None), slice(None))
     
     def process_dataset(self, ds: xr.Dataset) -> None:
         """
