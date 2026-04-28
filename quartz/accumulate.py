@@ -160,34 +160,26 @@ class SimpleAccumulator(BaseAccumulator):
 # ---------------------------------------------------------------------------
 
 if HAS_NUMBA:
-    @njit(parallel=True)
-    def _kahan_add_sorted(unique_indices, split_points, sorted_values, sum_acc, cmp_acc):
+    @njit
+    def _kahan_add(indices, values, sum_acc, cmp_acc, cnt_acc):
         """
-        JIT-compiled Kahan summation for sorted indices.
+        JIT-compiled Kahan summation with counting.
         
-        Processes pre-sorted values grouped by index, applying Kahan
-        compensation algorithm to minimize floating-point error.
-        Parallelized over unique bins.
+        Applies Kahan compensation algorithm for each value directly
+        to minimize floating-point error, and increments counts.
         """
-        for i in prange(len(unique_indices)):
-            idx = unique_indices[i]
-            start = split_points[i]
-            end = split_points[i + 1]
+        for i in range(len(indices)):
+            idx = indices[i]
+            val = values[i]
             
-            # Load current state for this bin
-            s = sum_acc[idx]
-            c = cmp_acc[idx]
+            # Kahan summation
+            y = val - cmp_acc[idx]
+            t = sum_acc[idx] + y
+            cmp_acc[idx] = (t - sum_acc[idx]) - y
+            sum_acc[idx] = t
             
-            # Apply Kahan summation to all values for this bin
-            for j in range(start, end):
-                y = sorted_values[j] - c
-                t = s + y
-                c = (t - s) - y
-                s = t
-            
-            # Store updated state
-            sum_acc[idx] = s
-            cmp_acc[idx] = c
+            # Count
+            cnt_acc[idx] += 1
 
 
 class KahanAccumulator(BaseAccumulator):
@@ -220,22 +212,9 @@ class KahanAccumulator(BaseAccumulator):
         """
         Accumulate using Kahan compensated summation.
         
-        Sorts values by index and applies JIT-compiled Kahan algorithm
-        for maximum performance while maintaining precision.
+        Applies JIT-compiled Kahan algorithm directly to each value
+        for numerical precision.
         """
-        # Sort by index to group values going to same bin
-        sort_order = np.argsort(indices)
-        sorted_idx = indices[sort_order]
-        sorted_val = values[sort_order]
-        
-        # Find boundaries where index changes
-        unique_idx, split_points = np.unique(sorted_idx, return_index=True)
-        split_points = np.append(split_points, len(sorted_idx))
-        
-        # Apply JIT-compiled Kahan summation
-        _kahan_add_sorted(unique_idx, split_points, sorted_val, self.sum_acc, self.cmp_acc)
-        
-        # Count accumulation (vectorized, no compensation needed)
-        n = len(self.sum_acc)
-        self.cnt_acc += np.bincount(indices, minlength=n).astype(self.count_dtype)
+        # Apply JIT-compiled Kahan summation with counting
+        _kahan_add(indices, values, self.sum_acc, self.cmp_acc, self.cnt_acc)
 

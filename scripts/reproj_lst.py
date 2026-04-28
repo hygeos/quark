@@ -43,8 +43,8 @@ with Chrono("Reprojecting LST dataset"):
 
     projection = EquiRectangular(width=width, height=height, area=area)
 
-    mode = "simple"
-    # mode = "kahan"
+    # mode = "simple"
+    mode = "kahan"
     ssfactor = 2
     subpxmode = "constant"
     px_width = "50m"
