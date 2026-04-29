@@ -20,7 +20,7 @@ from typing import Callable, Literal
 import numpy as np
 import xarray as xr
 
-from quartz import accumulate
+from quartz import accumulate, supersampling
 
 from core import log
 
@@ -261,251 +261,6 @@ class Aggregator:
                 f"Must end with 'km' or 'm' (e.g., '1km' or '500m')."
             )
     
-    def _compute_subpixel_offset(self, i: int, j: int) -> tuple[float, float]:
-        """
-        Compute fractional offset for subpixel (i, j).
-        
-        Parameters
-        ----------
-        i : int
-            Subpixel index in x direction (0 to ss-1)
-        j : int
-            Subpixel index in y direction (0 to ss-1)
-        
-        Returns
-        -------
-        offset_y, offset_x : float, float
-            Fractional offsets in range [-0.5, +0.5]
-        
-        Examples
-        --------
-        ss=2: offsets = [-0.25, +0.25]
-        ss=3: offsets = [-1/3, 0, +1/3]
-        """
-        ss = self.supersampling
-        center = (ss - 1) / 2.0
-        offset_x = (i - center) / ss
-        offset_y = (j - center) / ss
-        return offset_y, offset_x
-    
-    def _compute_slices_for_offset(
-        self, offset_y: float, offset_x: float
-    ) -> tuple[tuple[slice, slice], tuple[slice, slice] | None]:
-        """
-        Compute array slices for center and neighbor based on offset direction.
-        
-        Parameters
-        ----------
-        offset_y : float
-            Fractional offset in y direction
-        offset_x : float
-            Fractional offset in x direction
-        
-        Returns
-        -------
-        center_slices : (slice, slice)
-            Slices (y_slice, x_slice) for center grid
-        neighbor_slices : (slice, slice) | None
-            Slices for neighbor grid, or None if offset is (0, 0)
-        
-        Examples
-        --------
-        offset_y=-0.25, offset_x=-0.25 (top-left):
-            center: [1:, 1:], neighbor: [:-1, :-1]
-        offset_y=0, offset_x=-0.25 (left):
-            center: [:, 1:], neighbor: [:, :-1]
-        offset_y=0, offset_x=0 (center):
-            center: [:, :], neighbor: None
-        """
-        # Determine Y slicing
-        if offset_y < 0:
-            # Needs top neighbor (y-1) - exclude top edge
-            y_slice_center = slice(1, None)
-            y_slice_neighbor = slice(None, -1)
-        elif offset_y > 0:
-            # Needs bottom neighbor (y+1) - exclude bottom edge
-            y_slice_center = slice(None, -1)
-            y_slice_neighbor = slice(1, None)
-        else:
-            # No Y neighbor needed
-            y_slice_center = slice(None)
-            y_slice_neighbor = slice(None)
-        
-        # Determine X slicing
-        if offset_x < 0:
-            # Needs left neighbor (x-1) - exclude left edge
-            x_slice_center = slice(1, None)
-            x_slice_neighbor = slice(None, -1)
-        elif offset_x > 0:
-            # Needs right neighbor (x+1) - exclude right edge
-            x_slice_center = slice(None, -1)
-            x_slice_neighbor = slice(1, None)
-        else:
-            # No X neighbor needed
-            x_slice_center = slice(None)
-            x_slice_neighbor = slice(None)
-        
-        center_slices = (y_slice_center, x_slice_center)
-        
-        # If both offsets are 0, this is the center - no neighbor needed
-        if offset_y == 0 and offset_x == 0:
-            neighbor_slices = None
-        else:
-            neighbor_slices = (y_slice_neighbor, x_slice_neighbor)
-        
-        return center_slices, neighbor_slices
-    
-    def _interpolate_subpixel_coords(
-        self,
-        lat: np.ndarray,
-        lon: np.ndarray,
-        offset_y: float,
-        offset_x: float,
-    ) -> tuple[np.ndarray, np.ndarray, tuple[slice, slice]]:
-        """
-        Compute interpolated subpixel coordinates (dispatcher method).
-        
-        Dispatches to either spatial or constant mode based on self.subpixel_mode.
-        
-        Parameters
-        ----------
-        lat : np.ndarray, shape (ny, nx)
-            Latitude grid (2D)
-        lon : np.ndarray, shape (ny, nx)
-            Longitude grid (2D)
-        offset_y : float
-            Fractional offset in y direction
-        offset_x : float
-            Fractional offset in x direction
-        
-        Returns
-        -------
-        lat_sub : np.ndarray
-            Interpolated latitude coordinates
-        lon_sub : np.ndarray
-            Interpolated longitude coordinates
-        values_slices : (slice, slice)
-            Slices to apply to values arrays to match lat_sub/lon_sub shape
-        """
-        if self.subpixel_mode == "constant":
-            return self._interpolate_subpixel_coords_constant(lat, lon, offset_y, offset_x)
-        else:  # spatial mode
-            return self._interpolate_subpixel_coords_spatial(lat, lon, offset_y, offset_x)
-    
-    def _interpolate_subpixel_coords_spatial(
-        self,
-        lat: np.ndarray,
-        lon: np.ndarray,
-        offset_y: float,
-        offset_x: float,
-    ) -> tuple[np.ndarray, np.ndarray, tuple[slice, slice]]:
-        """
-        Compute interpolated subpixel coordinates using spatial neighbor-based method.
-        
-        Uses actual neighbor coordinates for adaptive spacing.
-        Excludes edges where neighbors are unavailable.
-        
-        Parameters
-        ----------
-        lat : np.ndarray, shape (ny, nx)
-            Latitude grid (2D)
-        lon : np.ndarray, shape (ny, nx)
-            Longitude grid (2D)
-        offset_y : float
-            Fractional offset in y direction
-        offset_x : float
-            Fractional offset in x direction
-        
-        Returns
-        -------
-        lat_sub : np.ndarray
-            Interpolated latitude coordinates
-        lon_sub : np.ndarray
-            Interpolated longitude coordinates
-        values_slices : (slice, slice)
-            Slices to apply to values arrays to match lat_sub/lon_sub shape
-        """
-        center_slices, neighbor_slices = self._compute_slices_for_offset(offset_y, offset_x)
-        
-        # Extract center grid
-        lat_center = lat[center_slices]
-        lon_center = lon[center_slices]
-        
-        # If this is the center (offset 0,0), return as-is
-        if neighbor_slices is None:
-            return lat_center, lon_center, center_slices
-        
-        # Extract neighbor grid
-        lat_neighbor = lat[neighbor_slices]
-        lon_neighbor = lon[neighbor_slices]
-        
-        # Compute deltas
-        delta_lat = lat_neighbor - lat_center
-        delta_lon = lon_neighbor - lon_center
-        
-        # Apply fractional interpolation
-        # Moving from center toward neighbor by offset fraction
-        lat_sub = lat_center + offset_y * delta_lat
-        lon_sub = lon_center + offset_x * delta_lon
-        
-        # Clamp latitude to valid range
-        lat_sub = np.clip(lat_sub, -90.0, 90.0)
-        
-        return lat_sub, lon_sub, center_slices
-    
-    def _interpolate_subpixel_coords_constant(
-        self,
-        lat: np.ndarray,
-        lon: np.ndarray,
-        offset_y: float,
-        offset_x: float,
-    ) -> tuple[np.ndarray, np.ndarray, tuple[slice, slice]]:
-        """
-        Compute subpixel coordinates using constant pixel width.
-        
-        Uses fixed meter-based spacing instead of adaptive neighbor-based spacing.
-        Allows processing entire grid (no edge exclusion).
-        
-        Parameters
-        ----------
-        lat : np.ndarray, shape (ny, nx)
-            Latitude grid (2D)
-        lon : np.ndarray, shape (ny, nx)
-            Longitude grid (2D)
-        offset_y : float
-            Fractional offset in y direction
-        offset_x : float
-            Fractional offset in x direction
-        
-        Returns
-        -------
-        lat_sub : np.ndarray
-            Interpolated latitude coordinates (same shape as input)
-        lon_sub : np.ndarray
-            Interpolated longitude coordinates (same shape as input)
-        values_slices : (slice, slice)
-            Slices for values array (full grid: [:, :])
-        """
-        # Type assertion for constant mode
-        assert self.pixel_width_m is not None, "pixel_width_m must be set for constant mode"
-        
-        # Convert pixel width from meters to degrees
-        # Latitude: 1 degree ≈ 111,320 meters (constant)
-        delta_lat_deg = self.pixel_width_m / 111320.0
-        
-        # Longitude: Constant (no latitude dependency per user request)
-        # Using same conversion as latitude (valid at equator)
-        delta_lon_deg = self.pixel_width_m / 111320.0
-        
-        # Apply offsets
-        lat_sub = lat + offset_y * delta_lat_deg
-        lon_sub = lon + offset_x * delta_lon_deg
-        
-        # Clamp latitude to valid range
-        lat_sub = np.clip(lat_sub, -90.0, 90.0)
-        
-        # Full grid - no slicing needed
-        return lat_sub, lon_sub, (slice(None), slice(None))
     
     def process_dataset(self, ds: xr.Dataset) -> None:
         """
@@ -520,6 +275,12 @@ class Aggregator:
         lat = ds[self.lat_name].values.astype(np.float64)
         lon = ds[self.lon_name].values.astype(np.float64)
         
+        # For spatial mode with supersampling, compute pixel widths once
+        pixel_widths = None
+        if self.subpixel_mode == "spatial" and self.supersampling > 1:
+            log.info("Computing per-pixel widths using XYZ method...")
+            pixel_widths = supersampling.compute_pixel_widths_xyz(lat, lon)
+        
         # Always project center first (current behavior when ss=1)
         log.info(f"Projecting center coordinates...")
         self._project_batch(ds, lat, lon, values_slices=(slice(None), slice(None)))
@@ -530,7 +291,7 @@ class Aggregator:
             for i in range(ss):
                 for j in range(ss):
                     # Compute offset for this subpixel
-                    offset_y, offset_x = self._compute_subpixel_offset(i, j)
+                    offset_y, offset_x = supersampling.compute_subpixel_offset(i, j, ss)
                     
                     # Skip center (already projected)
                     if offset_y == 0 and offset_x == 0:
@@ -539,8 +300,11 @@ class Aggregator:
                     log.info(f"Projecting subpixel ({i},{j}) with offset ({offset_y:.3f}, {offset_x:.3f})...")
                     
                     # Compute interpolated subpixel coordinates
-                    lat_sub, lon_sub, values_slices = self._interpolate_subpixel_coords(
-                        lat, lon, offset_y, offset_x
+                    lat_sub, lon_sub, values_slices = supersampling.interpolate_subpixel_coords(
+                        lat, lon, offset_y, offset_x,
+                        subpixel_mode=self.subpixel_mode,
+                        pixel_width_m=self.pixel_width_m,
+                        pixel_widths=pixel_widths,
                     )
                     
                     # Project this subpixel batch

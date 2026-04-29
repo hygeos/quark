@@ -5,6 +5,7 @@ import xarray as xr
 
 from quartz.aggregate import Aggregator
 from quartz.projection.equirectangular import EquiRectangular
+from quartz.utils import bbox_area
 
 from core.monitor import Chrono, RAM
 from core import log
@@ -18,22 +19,7 @@ with Chrono("Reprojecting LST dataset"):
 # with RAM("Reprojecting LST dataset"):
 
     # Compute bounding box from geolocation arrays
-    lat = ds["latitude"].values
-    lon = ds["longitude"].values
-    valid = np.isfinite(lat) & np.isfinite(lon)
-
-    lat_min = float(lat[valid].min())
-    lat_max = float(lat[valid].max())
-    lon_min = float(lon[valid].min())
-    lon_max = float(lon[valid].max())
-
-    margin = 0.05
-    area = {
-        "north": lat_max + margin,
-        "south": lat_min - margin,
-        "west": lon_min - margin,
-        "east": lon_max + margin,
-    }
+    area = bbox_area(ds, margin=0.05, lat_name="latitude", lon_name="longitude")
 
     # Output resolution in degrees (~0.01° ≈ 1 km at mid-latitudes); adjust as needed
     width, height = 5000, 5000
@@ -43,10 +29,12 @@ with Chrono("Reprojecting LST dataset"):
 
     projection = EquiRectangular(width=width, height=height, area=area)
 
-    # mode = "simple"
-    mode = "kahan"
+    mode = "simple"
+    # mode = "kahan"
     ssfactor = 2
-    subpxmode = "constant"
+    # subpxmode = "constant"
+    subpxmode = "spatial"
+    
     px_width = "50m"
 
     agg = Aggregator(
@@ -60,7 +48,7 @@ with Chrono("Reprojecting LST dataset"):
         # skipna=True,
         supersampling=ssfactor,
         subpixel_mode=subpxmode,
-        pixel_width=px_width,
+        # pixel_width=px_width,
         return_counts=True,
         return_sums=False,
         dtype=np.float32,
