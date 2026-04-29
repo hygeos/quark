@@ -70,7 +70,6 @@ for sum_method, dtype in configs:
             variables=[variable],
             sum_method=sum_method,
             skipna=True,
-            supersampling=1,
             return_counts=True,
             return_sums=True,
             dtype=dtype,

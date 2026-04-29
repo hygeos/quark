@@ -46,9 +46,7 @@ class Aggregator:
         fail_on_schema_mismatch: bool = True,
         sum_method: Literal["simple", "kahan"] = "simple",
         skipna: bool = True,
-        supersampling: int = 1,
-        pixel_width: str | None = None,
-        subpixel_mode: Literal["spatial", "constant"] | None = None,
+        supersampler: supersampling.BaseSuperSampler | None = None,
         return_counts: bool = False,
         return_sums: bool = False,
         dtype=None,
@@ -69,26 +67,24 @@ class Aggregator:
         fail_on_schema_mismatch : bool
             Raise if variable sets differ across datasets
         sum_method : {"simple", "kahan"}
-            Summation strategy (only 'simple' is currently implemented)
+            Summation strategy
         skipna : bool
             Skip NaN/inf values
-        supersampling : int
-            Sub-pixel sampling factor (1, 2, or 3)
-        pixel_width : str | None
-            Pixel width for constant-spacing subpixel mode (e.g., "1km", "500m").
-            If provided, uses constant spacing instead of spatial neighbor-based.
-            Triggers 'constant' subpixel mode automatically.
-        subpixel_mode : {"spatial", "constant"} | None
-            Subpixel coordinate computation mode:
-            - 'spatial': Use actual neighbor coordinates (adaptive, default)
-            - 'constant': Use fixed pixel_width spacing (uniform)
-            If None, auto-detected from pixel_width parameter.
+        supersampler : BaseSupersampler | None
+            Supersampling strategy (SpatialSupersampling, ConstantSupersampling).
+            If None, no supersampling is applied.
         return_counts : bool
             Include count arrays in output
         return_sums : bool
             Include sum arrays in output
         dtype : np.dtype | None
             Override output dtype for all variables
+        
+        Examples
+        --------
+        >>> from quartz.supersampling import SpatialSupersampling
+        >>> supersampler = SpatialSupersampling(factor=2)
+        >>> agg = Aggregator(projection, datasets, supersampler=supersampler)
         """
         
         if not isinstance(datasets, list):
@@ -97,41 +93,13 @@ class Aggregator:
         # Validate inputs
         if not datasets:
             raise ValueError("datasets must be a non-empty list.")
-        if supersampling not in (1, 2, 3):
-            raise ValueError("supersampling must be 1, 2, or 3.")
-        
-        # Parse pixel_width and determine mode
-        pixel_width_m = None
-        if pixel_width is not None:
-            pixel_width_m = self._parse_pixel_width(pixel_width)
-        
-        # Auto-detect or validate subpixel mode
-        if subpixel_mode is None:
-            # Auto-detect from pixel_width
-            if pixel_width_m is not None:
-                subpixel_mode = "constant"
-            else:
-                subpixel_mode = "spatial"
-        else:
-            # Explicit mode provided - validate consistency
-            if pixel_width_m is not None and subpixel_mode == "spatial":
-                raise ValueError(
-                    "Conflicting parameters: pixel_width is provided but subpixel_mode='spatial'. "
-                    "Either remove pixel_width to use spatial mode, or set subpixel_mode='constant'."
-                )
-            if pixel_width_m is None and subpixel_mode == "constant":
-                raise ValueError(
-                    "subpixel_mode='constant' requires pixel_width parameter (e.g., pixel_width='1km')."
-                )
         
         self.projection = projection
         self.lat_name = lat_name
         self.lon_name = lon_name
         self.skipna = skipna
         self.sum_method = sum_method
-        self.supersampling = supersampling
-        self.subpixel_mode = subpixel_mode
-        self.pixel_width_m = pixel_width_m
+        self.supersampler = supersampler
         self.return_counts = return_counts
         self.return_sums = return_sums
         self.dtype = dtype
@@ -211,56 +179,6 @@ class Aggregator:
         for ds in datasets:
             _validate_geolocation(ds, self.lat_name, self.lon_name)
     
-    @staticmethod
-    def _parse_pixel_width(pixel_width: str) -> float:
-        """
-        Parse pixel width string to meters.
-        
-        Parameters
-        ----------
-        pixel_width : str
-            Pixel width string (e.g., "1km", "500m", "0.3km")
-        
-        Returns
-        -------
-        float
-            Pixel width in meters
-        
-        Examples
-        --------
-        >>> _parse_pixel_width("1km")
-        1000.0
-        >>> _parse_pixel_width("500m")
-        500.0
-        >>> _parse_pixel_width("0.5km")
-        500.0
-        """
-        pixel_width = pixel_width.strip().lower()
-        
-        if pixel_width.endswith("km"):
-            try:
-                value = float(pixel_width[:-2])
-                return value * 1000.0
-            except ValueError:
-                raise ValueError(
-                    f"Invalid pixel_width format: '{pixel_width}'. "
-                    f"Expected format: '1km' or '500m'."
-                )
-        elif pixel_width.endswith("m"):
-            try:
-                value = float(pixel_width[:-1])
-                return value
-            except ValueError:
-                raise ValueError(
-                    f"Invalid pixel_width format: '{pixel_width}'. "
-                    f"Expected format: '1km' or '500m'."
-                )
-        else:
-            raise ValueError(
-                f"Invalid pixel_width format: '{pixel_width}'. "
-                f"Must end with 'km' or 'm' (e.g., '1km' or '500m')."
-            )
-    
     
     def process_dataset(self, ds: xr.Dataset) -> None:
         """
@@ -275,36 +193,31 @@ class Aggregator:
         lat = ds[self.lat_name].values.astype(np.float64)
         lon = ds[self.lon_name].values.astype(np.float64)
         
-        # For spatial mode with supersampling, compute pixel widths once
-        pixel_widths = None
-        if self.subpixel_mode == "spatial" and self.supersampling > 1:
-            log.info("Computing per-pixel widths using XYZ method...")
-            pixel_widths = supersampling.compute_pixel_widths_xyz(lat, lon)
-        
-        # Always project center first (current behavior when ss=1)
-        log.info(f"Projecting center coordinates...")
-        self._project_batch(ds, lat, lon, values_slices=(slice(None), slice(None)))
-        
-        # If supersampling > 1, project additional subpixels
-        if self.supersampling > 1:
-            ss = self.supersampling
-            for i in range(ss):
-                for j in range(ss):
-                    # Compute offset for this subpixel
-                    offset_y, offset_x = supersampling.compute_subpixel_offset(i, j, ss)
+        # No supersampler: project once and done
+        if self.supersampler is None:
+            log.info("Projecting coordinates (no supersampling)...")
+            self._project_batch(ds, lat, lon, values_slices=(slice(None), slice(None)))
+        else:
+            # Prepare supersampler (compute cached data like pixel widths)
+            self.supersampler.prepare(lat, lon)
+            
+            # Iterate over all subpixels
+            factor = self.supersampler.factor
+            for i in range(factor):
+                for j in range(factor):
+                    # Check if we should project center
+                    offset_y, offset_x = supersampling.compute_subpixel_offset(i, j, factor)
+                    is_center = (offset_y == 0 and offset_x == 0)
                     
-                    # Skip center (already projected)
-                    if offset_y == 0 and offset_x == 0:
+                    if is_center and not self.supersampler.project_center:
+                        log.info(f"Skipping center subpixel ({i},{j})...")
                         continue
                     
                     log.info(f"Projecting subpixel ({i},{j}) with offset ({offset_y:.3f}, {offset_x:.3f})...")
                     
-                    # Compute interpolated subpixel coordinates
-                    lat_sub, lon_sub, values_slices = supersampling.interpolate_subpixel_coords(
-                        lat, lon, offset_y, offset_x,
-                        subpixel_mode=self.subpixel_mode,
-                        pixel_width_m=self.pixel_width_m,
-                        pixel_widths=pixel_widths,
+                    # Compute subpixel coordinates
+                    lat_sub, lon_sub, values_slices = self.supersampler.compute_coords(
+                        lat, lon, i, j
                     )
                     
                     # Project this subpixel batch
@@ -519,12 +432,25 @@ class Aggregator:
             if hasattr(self.projection, attr)
         }
         
+        # Supersampling info
+        if self.supersampler is not None:
+            ss_info = {
+                "supersampling_factor": self.supersampler.factor,
+                "supersampling_type": type(self.supersampler).__name__,
+                "supersampling_project_center": self.supersampler.project_center,
+            }
+            # Add pixel_width for ConstantSupersampling
+            if isinstance(self.supersampler, supersampling.ConstantSuperSampler):
+                ss_info["supersampling_pixel_width"] = self.supersampler.pixel_width
+        else:
+            ss_info = {"supersampling_factor": 1}
+        
         global_attrs = {
             "projection_name": type(self.projection).__name__,
             "projection_width": self.projection.width,
             "projection_height": self.projection.height,
             "projection_area": str(area_attrs) if area_attrs else "N/A",
-            "supersampling": self.supersampling,
+            **ss_info,
             "mode": "in-memory",
             "sum_method": self.sum_method,
             "reproject_dims": str(self.reproject_dims),

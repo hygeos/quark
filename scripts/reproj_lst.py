@@ -5,6 +5,7 @@ import xarray as xr
 
 from quartz.aggregate import Aggregator
 from quartz.projection.equirectangular import EquiRectangular
+from quartz.supersampling import SpatialSuperSampler, ConstantSuperSampler
 from quartz.utils import bbox_area
 
 from core.monitor import Chrono, RAM
@@ -36,6 +37,12 @@ with Chrono("Reprojecting LST dataset"):
     subpxmode = "spatial"
     
     px_width = "50m"
+    
+    # Create supersampler based on mode
+    if subpxmode == "spatial":
+        supersampler = SpatialSuperSampler(factor=ssfactor, project_center=True)
+    else:  # constant
+        supersampler = ConstantSuperSampler(factor=ssfactor, pixel_width=px_width, project_center=True)
 
     agg = Aggregator(
         projection=projection,
@@ -46,9 +53,7 @@ with Chrono("Reprojecting LST dataset"):
         # fail_on_schema_mismatch=False,
         sum_method=mode,
         # skipna=True,
-        supersampling=ssfactor,
-        subpixel_mode=subpxmode,
-        # pixel_width=px_width,
+        supersampler=supersampler,
         return_counts=True,
         return_sums=False,
         dtype=np.float32,

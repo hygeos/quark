@@ -3,13 +3,14 @@ quartz.supersampling
 --------------------
 Supersampling utilities for subpixel coordinate generation.
 
-Provides methods for computing adaptive subpixel coordinates using:
-- Spatial mode: XYZ-based adaptive pixel widths (spherical geometry)
-- Constant mode: Fixed meter-based spacing
+Provides:
+- SpatialSupersampling: XYZ-based adaptive pixel widths (spherical geometry)
+- ConstantSupersampling: Fixed meter-based spacing
 """
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from typing import Literal
 
 import numpy as np
@@ -297,4 +298,191 @@ def interpolate_subpixel_coords(
     else:  # spatial mode
         return supersample_subpixel_coords_spatial(
             lat, lon, offset_y, offset_x, pixel_widths
+        )
+
+
+# ---------------------------------------------------------------------------
+# Supersampler Classes (Strategy Pattern)
+# ---------------------------------------------------------------------------
+
+class BaseSuperSampler(ABC):
+    """
+    Abstract base class for supersampling strategies.
+    
+    Parameters
+    ----------
+    factor : int
+        Supersampling factor (must be >= 2). Creates a factor×factor subpixel grid.
+        For example, factor=2 creates 4 subpixels, factor=3 creates 9 subpixels.
+    project_center : bool
+        Whether to project the center pixel (offset 0,0)
+    """
+    
+    def __init__(self, factor: int, project_center: bool = True):
+        if not isinstance(factor, int) or factor < 2:
+            raise ValueError(f"factor must be an integer >= 2, got {factor}")
+        self.factor = factor
+        self.project_center = project_center
+    
+    def prepare(self, lat: np.ndarray, lon: np.ndarray) -> None:
+        """
+        Prepare for supersampling (compute cached data).
+        
+        Called once per dataset before iterating subpixels.
+        
+        Parameters
+        ----------
+        lat : np.ndarray, shape (ny, nx)
+            Latitude grid
+        lon : np.ndarray, shape (ny, nx)
+            Longitude grid
+        """
+        pass  # Override in subclasses if needed
+    
+    @abstractmethod
+    def compute_coords(
+        self, lat: np.ndarray, lon: np.ndarray, i: int, j: int
+    ) -> tuple[np.ndarray, np.ndarray, tuple[slice, slice]]:
+        """
+        Compute subpixel coordinates for subpixel (i, j).
+        
+        Parameters
+        ----------
+        lat : np.ndarray, shape (ny, nx)
+            Latitude grid
+        lon : np.ndarray, shape (ny, nx)
+            Longitude grid
+        i : int
+            Subpixel index in x direction (0 to factor-1)
+        j : int
+            Subpixel index in y direction (0 to factor-1)
+        
+        Returns
+        -------
+        lat_sub : np.ndarray
+            Interpolated latitude coordinates
+        lon_sub : np.ndarray
+            Interpolated longitude coordinates
+        values_slices : (slice, slice)
+            Slices to apply to values arrays
+        """
+        pass
+
+
+class SpatialSuperSampler(BaseSuperSampler):
+    """
+    XYZ-based adaptive supersampling.
+    
+    Computes per-pixel angular widths from 3D Cartesian neighbor distances,
+    accounting for spherical geometry and latitude-dependent spacing.
+    Processes the full grid (no edge exclusion), allowing any factor >= 2.
+    
+    Parameters
+    ----------
+    factor : int
+        Supersampling factor (integer >= 2). Creates a factor×factor subpixel grid.
+    project_center : bool
+        Whether to project the center pixel (offset 0,0)
+    
+    Examples
+    --------
+    >>> supersampler = SpatialSupersampling(factor=2)  # 4 subpixels
+    >>> supersampler = SpatialSupersampling(factor=5)  # 25 subpixels
+    >>> supersampler.prepare(lat, lon)
+    >>> lat_sub, lon_sub, slices = supersampler.compute_coords(lat, lon, 0, 0)
+    """
+    
+    def __init__(self, factor: int, project_center: bool = True):
+        super().__init__(factor, project_center)
+        self._pixel_widths: np.ndarray | None = None
+    
+    def prepare(self, lat: np.ndarray, lon: np.ndarray) -> None:
+        """Compute pixel widths once per dataset."""
+        self._pixel_widths = compute_pixel_widths_xyz(lat, lon)
+    
+    def compute_coords(
+        self, lat: np.ndarray, lon: np.ndarray, i: int, j: int
+    ) -> tuple[np.ndarray, np.ndarray, tuple[slice, slice]]:
+        """Compute adaptive subpixel coordinates."""
+        offset_y, offset_x = compute_subpixel_offset(i, j, self.factor)
+        return supersample_subpixel_coords_spatial(
+            lat, lon, offset_y, offset_x, self._pixel_widths
+        )
+
+
+class ConstantSuperSampler(BaseSuperSampler):
+    """
+    Constant-spacing supersampling.
+    
+    Uses fixed meter-based pixel width for uniform subpixel spacing.
+    
+    Parameters
+    ----------
+    factor : int
+        Supersampling factor (integer >= 2). Creates a factor×factor subpixel grid.
+    pixel_width : str
+        Pixel width string (e.g., "1km", "500m")
+    project_center : bool
+        Whether to project the center pixel (offset 0,0)
+    
+    Examples
+    --------
+    >>> supersampler = ConstantSupersampling(factor=2, pixel_width="1km")  # 4 subpixels
+    >>> supersampler = ConstantSupersampling(factor=10, pixel_width="100m")  # 100 subpixels
+    >>> lat_sub, lon_sub, slices = supersampler.compute_coords(lat, lon, 0, 1)
+    """
+    
+    def __init__(self, factor: int, pixel_width: str, project_center: bool = True):
+        super().__init__(factor, project_center)
+        self.pixel_width = pixel_width
+        self.pixel_width_m = self._parse_pixel_width(pixel_width)
+    
+    @staticmethod
+    def _parse_pixel_width(pixel_width: str) -> float:
+        """
+        Parse pixel width string to meters.
+        
+        Parameters
+        ----------
+        pixel_width : str
+            Pixel width string (e.g., "1km", "500m", "0.3km")
+        
+        Returns
+        -------
+        float
+            Pixel width in meters
+        """
+        pixel_width = pixel_width.strip().lower()
+        
+        if pixel_width.endswith("km"):
+            try:
+                value = float(pixel_width[:-2])
+                return value * 1000.0
+            except ValueError:
+                raise ValueError(
+                    f"Invalid pixel_width format: '{pixel_width}'. "
+                    f"Expected format: '1km' or '500m'."
+                )
+        elif pixel_width.endswith("m"):
+            try:
+                value = float(pixel_width[:-1])
+                return value
+            except ValueError:
+                raise ValueError(
+                    f"Invalid pixel_width format: '{pixel_width}'. "
+                    f"Expected format: '1km' or '500m'."
+                )
+        else:
+            raise ValueError(
+                f"Invalid pixel_width format: '{pixel_width}'. "
+                f"Must end with 'km' or 'm' (e.g., '1km' or '500m')."
+            )
+    
+    def compute_coords(
+        self, lat: np.ndarray, lon: np.ndarray, i: int, j: int
+    ) -> tuple[np.ndarray, np.ndarray, tuple[slice, slice]]:
+        """Compute constant-spacing subpixel coordinates."""
+        offset_y, offset_x = compute_subpixel_offset(i, j, self.factor)
+        return supersample_subpixel_coords_constant(
+            lat, lon, offset_y, offset_x, self.pixel_width_m
         )
