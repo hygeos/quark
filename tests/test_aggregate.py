@@ -1,5 +1,5 @@
 """
-Tests for quartz.aggregate.aggregate().
+Tests for quark.aggregate.aggregate().
 
 Tolerance constants (do not hardcode inside assertions):
 """
@@ -8,9 +8,9 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from quartz.aggregate import Aggregator
-from quartz.supersampling import SpatialSuperSampler
-from quartz.projection.equirectangular import EquiRectangular
+from quark.aggregate import Aggregator
+from quark.supersampling import SpatialSuperSampler
+from quark.projection.equirectangular import EquiRectangular
 
 # ---------------------------------------------------------------------------
 # Tolerance constants for numeric parity checks

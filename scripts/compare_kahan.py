@@ -6,8 +6,8 @@ from pathlib import Path
 import numpy as np
 import xarray as xr
 
-from quartz.aggregate import Aggregator
-from quartz.projection.equirectangular import EquiRectangular
+from quark.aggregate import Aggregator
+from quark.projection.equirectangular import EquiRectangular
 
 from core.monitor import Chrono
 from core import log

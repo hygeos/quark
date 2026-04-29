@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from quartz.projection.equirectangular import EquiRectangular
+from quark.projection.equirectangular import EquiRectangular
 
 
 class TestEquirectangularProjectionInit:

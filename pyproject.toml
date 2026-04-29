@@ -1,0 +1,57 @@
+[project]
+name = "quark"
+version = "0.1.0"
+description = "Quantized Array Reprojection Transform on Z-levels"
+requires-python = ">= 3.10"
+authors = [{name = "HYGEOS", email = "contact@hygeos.com"}]
+dependencies = [
+    "xarray",
+    "numpy",
+]
+
+[project.optional-dependencies]
+git = [
+    "core[git] @ git+https://github.com/hygeos/core"
+]
+
+[build-system]
+requires = ["setuptools>=42"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = {find = {}}
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[tool.pixi.pypi-dependencies]
+quark = { path = ".", editable = true, extras = ["git"] }
+
+[tool.pixi.tasks]
+tests = "pytest tests/"
+
+
+[tool.pixi.dependencies]
+ipykernel = "*"
+pytest = "*"
+pytest-html = "*"
+matplotlib-base = "*"
+pytest-xdist = "*"
+numpy = "*"
+xarray = "*"
+netcdf4 = "*"
+numba = "*"
+
+[tool.pixi.environments]
+default = { features = ['sys', 'sub', 'dev'], solve-group = "default" }
+
+[tool.pixi.feature.sys.dependencies]
+
+[tool.pixi.feature.dev.dependencies]
+
+[tool.pixi.feature.sub.dependencies]
+pandas = "*"
+xarray = "*"
+dask = "*"
+scipy = "*"

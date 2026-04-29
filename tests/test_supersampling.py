@@ -4,9 +4,9 @@ Simple test to verify supersampling implementation.
 
 import numpy as np
 import xarray as xr
-from quartz.projection.equirectangular import EquiRectangular
-from quartz.aggregate import Aggregator
-from quartz.supersampling import SpatialSuperSampler, ConstantSuperSampler
+from quark.projection.equirectangular import EquiRectangular
+from quark.aggregate import Aggregator
+from quark.supersampling import SpatialSuperSampler, ConstantSuperSampler
 
 
 def create_simple_test_dataset():
@@ -166,7 +166,7 @@ def test_grid_pattern_verification():
     print("="*60)
     
     # Test that subpixel offsets form a proper grid
-    from quartz.supersampling import compute_subpixel_offset
+    from quark.supersampling import compute_subpixel_offset
     
     for factor in [2, 3, 5]:
         print(f"\nFactor {factor}:")

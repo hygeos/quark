@@ -3,10 +3,10 @@ from pathlib import Path
 import numpy as np
 import xarray as xr
 
-from quartz.aggregate import Aggregator
-from quartz.projection.equirectangular import EquiRectangular
-from quartz.supersampling import SpatialSuperSampler, ConstantSuperSampler
-from quartz.utils import bbox_area
+from quark.aggregate import Aggregator
+from quark.projection.equirectangular import EquiRectangular
+from quark.supersampling import SpatialSuperSampler, ConstantSuperSampler
+from quark.utils import bbox_area
 
 from core.monitor import Chrono, RAM
 from core import log
