@@ -38,8 +38,8 @@ class Aggregator:
     
     def __init__(
         self,
-        projection,
         datasets: list[xr.Dataset] | xr.Dataset,
+        projection,
         lat_name: str = "latitude",
         lon_name: str = "longitude",
         variables: list[str] | None = None,
@@ -56,10 +56,10 @@ class Aggregator:
         
         Parameters
         ----------
-        projection : ProjectionInterface
-            Target grid projection
         datasets : list[xr.Dataset]
             Source datasets (for metadata extraction)
+        projection : ProjectionInterface
+            Target grid projection
         lat_name, lon_name : str
             Geolocation variable names
         variables : list[str] | None
@@ -213,7 +213,7 @@ class Aggregator:
                         log.info(f"Skipping center subpixel ({i},{j})...")
                         continue
                     
-                    log.info(f"Projecting subpixel ({i},{j}) with offset ({offset_y:.3f}, {offset_x:.3f})...")
+                    log.info(f"Projecting subpixel ({i},{j}) of {factor}x{factor}...")
                     
                     # Compute subpixel coordinates
                     lat_sub, lon_sub, values_slices = self.supersampler.compute_coords(
@@ -437,7 +437,7 @@ class Aggregator:
             ss_info = {
                 "supersampling_factor": self.supersampler.factor,
                 "supersampling_type": type(self.supersampler).__name__,
-                "supersampling_project_center": self.supersampler.project_center,
+                "supersampling_project_center": int(self.supersampler.project_center),
             }
             # Add pixel_width for ConstantSupersampling
             if isinstance(self.supersampler, supersampling.ConstantSuperSampler):

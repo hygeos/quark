@@ -76,7 +76,11 @@ class EquiRectangular:
             lon_normalized = np.where(lon_normalized < 0, lon_normalized + 360, lon_normalized)
         
         # Check bounds (for non-clipped mode)
-        out_of_bounds = (lat < self.south) | (lat > self.north) | (lon < self.west) | (lon > self.east)
+        out_of_bounds = (
+            ~np.isfinite(lat) | ~np.isfinite(lon)
+            | (lat < self.south) | (lat > self.north)
+            | (lon < self.west)  | (lon > self.east)
+        )
         
         # Map latitude from [south, north] to [height-1, 0] (top to bottom in image coordinates)
         # North is at y=0, South is at y=height-1
