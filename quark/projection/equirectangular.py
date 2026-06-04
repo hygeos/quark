@@ -122,11 +122,11 @@ class EquiRectangular:
         
         # Map from pixel coordinates to geographic coordinates
         # x: [0, width-1] -> [west, east]  (guard against width=1 to avoid 0/0)
-        longitude = self.west + (x_indexes / (self.width - 1)) * self.lon_span
-        
+        longitude = self.west + (x_indexes / max(self.width - 1, 1)) * self.lon_span
+
         # y: [0, height-1] -> [north, south] (top to bottom)
-        latitude = self.north - (y_indexes / (self.height - 1)) * self.lat_span
-        
+        latitude = self.north - (y_indexes / max(self.height - 1, 1)) * self.lat_span
+
         return latitude, longitude
     
     def is_in_bounds(self, latitude: Union[float, np.ndarray], longitude: Union[float, np.ndarray]) -> np.ndarray:

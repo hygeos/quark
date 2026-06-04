@@ -11,7 +11,7 @@ import numpy as np
 import xarray as xr
 
 from quark.aggregate import Aggregator
-from quark.projection.polar import AzimuthalEquidistant
+from quark.projection.lambertazimutal import LambertAzimuthal 
 from quark.supersampling import ConstantSuperSampler
 
 # ---------------------------------------------------------------------------
@@ -65,7 +65,7 @@ print(f"\nSource dataset: {ds.sizes}")
 print(f"Variables: {list(ds.data_vars)}")
 
 # Create projection
-projection = AzimuthalEquidistant(
+projection = LambertAzimuthal (
     width=OUTPUT_SIZE,
     height=OUTPUT_SIZE,
     center_latitude=CENTER_LAT,
