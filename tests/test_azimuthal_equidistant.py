@@ -365,6 +365,94 @@ class TestDistancesPreserved:
         assert np.allclose(ratios, ratios[0], rtol=0.02)
 
 
+class TestRotation:
+    """Test the rotation parameter."""
+
+    def test_rotation_zero_is_default(self):
+        """Test that rotation=0 gives the same result as no rotation."""
+        proj_default = AzimuthalEquidistant(201, 201, center_latitude=90.0)
+        proj_rotated = AzimuthalEquidistant(201, 201, center_latitude=90.0, rotation=0.0)
+
+        x1, y1 = proj_default.project_to_indexes(0.0, 90.0)
+        x2, y2 = proj_rotated.project_to_indexes(0.0, 90.0)
+        assert x1[0] == x2[0]
+        assert y1[0] == y2[0]
+
+    def test_rotation_90_degrees(self):
+        """Test that rotation=90 shifts equator points by 90 degrees."""
+        proj = AzimuthalEquidistant(201, 201, center_latitude=90.0, rotation=90.0)
+
+        # Without rotation, equator at lon=90 is at (200, 100) — right edge
+        # With rotation=90, equator at lon=0 should now be at (200, 100)
+        x, y = proj.project_to_indexes(0.0, 0.0)
+        assert x[0] == 200  # right edge
+        assert y[0] == 100  # center y
+
+    def test_rotation_180_degrees(self):
+        """Test that rotation=180 flips the view upside down."""
+        proj = AzimuthalEquidistant(201, 201, center_latitude=90.0, rotation=180.0)
+
+        # Without rotation, equator at lon=0 is at (100, 200) — bottom edge
+        # With rotation=180, equator at lon=0 should be at (100, 0) — top edge
+        x, y = proj.project_to_indexes(0.0, 0.0)
+        assert x[0] == 100  # center x
+        assert y[0] == 0  # top edge
+
+    def test_rotation_360_same_as_zero(self):
+        """Test that rotation=360 is same as rotation=0."""
+        proj_default = AzimuthalEquidistant(201, 201, center_latitude=90.0)
+        proj_360 = AzimuthalEquidistant(201, 201, center_latitude=90.0, rotation=360.0)
+
+        x1, y1 = proj_default.project_to_indexes(0.0, 45.0)
+        x2, y2 = proj_360.project_to_indexes(0.0, 45.0)
+        assert x1[0] == x2[0]
+        assert y1[0] == y2[0]
+
+    def test_rotation_preserves_distances(self):
+        """Test that rotation doesn't change distances from center."""
+        proj_default = AzimuthalEquidistant(201, 201, center_latitude=90.0)
+        proj_rotated = AzimuthalEquidistant(201, 201, center_latitude=90.0, rotation=45.0)
+
+        x1, y1 = proj_default.project_to_indexes(45.0, 0.0)
+        x2, y2 = proj_rotated.project_to_indexes(45.0, 0.0)
+
+        dist1 = np.sqrt((x1[0] - 100) ** 2 + (y1[0] - 100) ** 2)
+        dist2 = np.sqrt((x2[0] - 100) ** 2 + (y2[0] - 100) ** 2)
+        # Within 1 pixel due to rounding on diagonal
+        assert abs(dist1 - dist2) <= 1
+
+    def test_rotation_negative(self):
+        """Test that negative rotation works (counter-clockwise)."""
+        proj = AzimuthalEquidistant(201, 201, center_latitude=90.0, rotation=-90.0)
+
+        # rotation=-90: lon=0 moves to left edge, lon=180 moves to right edge
+        x, y = proj.project_to_indexes(0.0, 0.0)
+        assert x[0] == 0  # left edge
+        assert y[0] == 100  # center y
+
+    def test_rotation_equatorial_center(self):
+        """Test rotation with equatorial center."""
+        proj = AzimuthalEquidistant(201, 201, center_latitude=0.0, center_longitude=0.0, rotation=90.0)
+
+        # Without rotation, North Pole is at top (100, 0)
+        # With rotation=90, North Pole should be at left (0, 100)
+        x, y = proj.project_to_indexes(90.0, 0.0)
+        assert x[0] == 0  # left edge
+        assert y[0] == 100  # center y
+
+    def test_rotation_round_trip(self):
+        """Test that get_coordinates with rotation gives consistent results."""
+        proj = AzimuthalEquidistant(201, 201, center_latitude=90.0, rotation=45.0)
+
+        lat_grid, lon_grid = proj.get_coordinates()
+
+        # Center should still be at the pole
+        assert np.isclose(lat_grid[100, 100], 90.0, atol=1e-6)
+
+        # Corners should be NaN
+        assert np.isnan(lat_grid[0, 0])
+
+
 class TestEdgeCases:
     """Test edge cases and special scenarios."""
 

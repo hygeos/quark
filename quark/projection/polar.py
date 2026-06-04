@@ -20,6 +20,7 @@ class AzimuthalEquidistant:
         center_latitude: float = 90.0,
         center_longitude: float = 0.0,
         radius: Optional[float] = None,
+        rotation: float = 0.0,
     ):
         """
         Initialize an azimuthal equidistant projection.
@@ -35,6 +36,11 @@ class AzimuthalEquidistant:
             radius (float, optional): Maximum angular distance (in degrees) from the center
                 that will be visible in the projection. Defaults to 90 (hemisphere).
                 Use smaller values for zoomed-in views (e.g., 45 for a quarter-sphere).
+            rotation (float, optional): Rotation of the view in degrees clockwise from the
+                default orientation. In the default orientation (rotation=0), the meridian
+                through the center points "down" in the image (following the meridian
+                southward from the center). Positive rotation spins the view clockwise
+                around the center. Defaults to 0.
         """
         # Choose dtype based on dimensions
         if max(width, height) < np.iinfo(np.uint16).max:
@@ -70,6 +76,10 @@ class AzimuthalEquidistant:
         if not (0 < radius <= 180):
             raise ValueError(f"radius must be in (0, 180], got {radius}")
         self.radius = radius
+
+        # Store rotation
+        self.rotation = rotation
+        self._rotation_rad = np.radians(rotation)
 
         # Pre-compute trig values for the center point
         self._sin_lat0 = np.sin(np.radians(center_latitude))
@@ -169,12 +179,15 @@ class AzimuthalEquidistant:
             | (theta > self._radius_rad + 1e-10)
         )
 
+        # Apply rotation to azimuth (clockwise rotation of the view)
+        phi_rotated = phi - self._rotation_rad
+
         # Scale angular distance to pixel distance
         # θ / radius_rad maps [0, radius] -> [0, 1]
         # Then scale to pixel coordinates
         scale = self._max_pixel_radius / self._radius_rad
-        x_offset = scale * theta * np.sin(phi)
-        y_offset = scale * theta * np.cos(phi)
+        x_offset = scale * theta * np.sin(phi_rotated)
+        y_offset = scale * theta * np.cos(phi_rotated)
 
         # In image coordinates, y increases downward, so we subtract the y offset
         x_indexes = self._cx + x_offset
@@ -220,8 +233,8 @@ class AzimuthalEquidistant:
         # Angular distance from center
         theta = pixel_dist * self._radius_rad / self._max_pixel_radius
 
-        # Azimuth from center (clockwise from north)
-        phi = np.arctan2(dx, dy)
+        # Azimuth from center (clockwise from north), accounting for rotation
+        phi = np.arctan2(dx, dy) + self._rotation_rad
 
         # Convert back to lat/lon using inverse formulas
         # sin(lat) = sin(lat0)*cos(θ) + cos(lat0)*sin(θ)*cos(φ)

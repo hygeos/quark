@@ -28,9 +28,10 @@ out_dir = Path("/tmp/quark_polar_test")
 out_dir.mkdir(parents=True, exist_ok=True)
 
 # Projection center — change these to explore different views
-CENTER_LAT = 90.0       # North Pole (try 0.0 for equatorial, 50.0 for Europe)
-CENTER_LON = 0.0        # Prime meridian (try 10.0 for Europe)
-RADIUS = 90.0           # Hemisphere (try 45.0 for zoomed view)
+CENTER_LAT = 55.0       # North England
+CENTER_LON = -2.0       # North England
+RADIUS = 60.0           # ~6600 km from center
+ROTATION = 25.0         # Rotation in degrees clockwise from default (meridian-down)
 
 # Output resolution
 OUTPUT_SIZE = 2000      # 2000×2000 pixels
@@ -54,6 +55,7 @@ print("=" * 60)
 print(f"Source: {src}")
 print(f"Center: ({CENTER_LAT}°, {CENTER_LON}°)")
 print(f"Radius: {RADIUS}°")
+print(f"Rotation: {ROTATION}°")
 print(f"Output: {OUTPUT_SIZE}×{OUTPUT_SIZE} px")
 print("=" * 60)
 
@@ -69,6 +71,7 @@ projection = AzimuthalEquidistant(
     center_latitude=CENTER_LAT,
     center_longitude=CENTER_LON,
     radius=RADIUS,
+    rotation=ROTATION,
 )
 
 print(f"\nProjection center pixel: ({projection._cx:.0f}, {projection._cy:.0f})")
