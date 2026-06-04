@@ -113,11 +113,9 @@ def get_size_from_bbox(bbox: dict, resolution: str = "1km") -> tuple[int, int]:
     lat_span = bbox["north"] - bbox["south"]
     lon_span = bbox["east"]  - bbox["west"]
 
-    M_PER_DEG_LAT = 111_320.0
-    centre_lat = (bbox["north"] + bbox["south"]) / 2.0
-    m_per_deg_lon = M_PER_DEG_LAT * np.cos(np.deg2rad(centre_lat))
+    M_PER_DEG = 111_320.0 # ~40 075 km circumference / 360 degrees
 
-    width  = max(1, round(lon_span * m_per_deg_lon / res_m))
-    height = max(1, round(lat_span * M_PER_DEG_LAT  / res_m))
+    width  = max(1, round(lon_span * M_PER_DEG / res_m))
+    height = max(1, round(lat_span * M_PER_DEG  / res_m))
 
     return width, height

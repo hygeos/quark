@@ -1,1 +1,2 @@
 from quark.projection.equirectangular import EquiRectangular
+from quark.projection.polar import AzimuthalEquidistant

@@ -437,3 +437,106 @@ class TestEdgeCases:
         
         assert x.dtype == proj.uint_type
         assert y.dtype == proj.uint_type
+    
+    def test_get_coordinates_single_pixel_width(self):
+        """Test that get_coordinates works when width=1 (regression: division by zero)."""
+        proj = EquiRectangular(1, 100)
+        lats, lons = proj.get_coordinates()
+        assert len(lons) == 1
+        assert np.isfinite(lons[0])
+
+    def test_get_coordinates_single_pixel_height(self):
+        """Test that get_coordinates works when height=1 (regression: division by zero)."""
+        proj = EquiRectangular(100, 1)
+        lats, lons = proj.get_coordinates()
+        assert len(lats) == 1
+        assert np.isfinite(lats[0])
+
+    def test_get_coordinates_1x1(self):
+        """Test that get_coordinates works on a 1x1 grid (regression: division by zero)."""
+        proj = EquiRectangular(1, 1)
+        lats, lons = proj.get_coordinates()
+        assert np.isfinite(lats[0])
+        assert np.isfinite(lons[0])
+
+
+class TestWestEqualsEast:
+    """Regression tests for west == east validation (bug #4)."""
+
+    def test_west_equals_east_raises(self):
+        """west == east must be rejected to avoid division by zero downstream."""
+        with pytest.raises(ValueError):
+            EquiRectangular(100, 100, area={"north": 60, "south": 40, "west": 10, "east": 10})
+
+
+class TestAntimeridianCrossing:
+    """Regression tests for antimeridian-crossing areas (bugs #1, #2, #5)."""
+
+    # area that straddles the antimeridian: 170°E to 170°W
+    ANTI_AREA = {"north": 60, "south": 40, "west": 170, "east": -170}
+
+    def test_project_to_indexes_antimeridian_center_not_oob(self):
+        """Points inside an antimeridian-crossing area must not be marked FILL_VALUE (bug #1)."""
+        proj = EquiRectangular(200, 100, area=self.ANTI_AREA)
+
+        # 180° is the centre of a 170→-170 area — must be valid
+        x, y = proj.project_to_indexes(50, 180)
+        assert proj.is_valid_index(x, y)[0], \
+            "lon=180 is inside a 170→-170 antimeridian area but was marked out-of-bounds"
+
+    def test_project_to_indexes_antimeridian_west_edge(self):
+        """Western edge of antimeridian-crossing area must map to x=0."""
+        proj = EquiRectangular(200, 100, area=self.ANTI_AREA)
+
+        x, y = proj.project_to_indexes(50, 170)
+        assert proj.is_valid_index(x, y)[0]
+        assert x[0] == 0
+
+    def test_project_to_indexes_antimeridian_east_edge(self):
+        """Eastern edge of antimeridian-crossing area must map to x=width-1."""
+        proj = EquiRectangular(200, 100, area=self.ANTI_AREA)
+
+        x, y = proj.project_to_indexes(50, -170)
+        assert proj.is_valid_index(x, y)[0]
+        assert x[0] == 199
+
+    def test_project_to_indexes_antimeridian_outside_is_oob(self):
+        """Points clearly outside an antimeridian-crossing area must be FILL_VALUE."""
+        proj = EquiRectangular(200, 100, area=self.ANTI_AREA)
+
+        # 0° is nowhere near 170→-170
+        x, y = proj.project_to_indexes(50, 0)
+        assert not proj.is_valid_index(x, y)[0], \
+            "lon=0 is outside a 170→-170 area but was not marked out-of-bounds"
+
+    def test_is_in_bounds_antimeridian_inside(self):
+        """is_in_bounds must return True for points inside an antimeridian-crossing area (bug #2)."""
+        proj = EquiRectangular(200, 100, area=self.ANTI_AREA)
+
+        assert proj.is_in_bounds(50, 180)[0] == True
+        assert proj.is_in_bounds(50, 175)[0] == True
+        assert proj.is_in_bounds(50, -175)[0] == True
+
+    def test_is_in_bounds_antimeridian_outside(self):
+        """is_in_bounds must return False for points outside an antimeridian-crossing area (bug #2)."""
+        proj = EquiRectangular(200, 100, area=self.ANTI_AREA)
+
+        assert proj.is_in_bounds(50, 0)[0] == False
+        assert proj.is_in_bounds(50, 90)[0] == False
+        assert proj.is_in_bounds(50, -90)[0] == False
+
+    def test_project_to_indexes_antimeridian_roundtrip(self):
+        """get_coordinates + project_to_indexes round-trip for antimeridian area (bug #5)."""
+        proj = EquiRectangular(200, 100, area=self.ANTI_AREA)
+
+        lats, lons = proj.get_coordinates()
+        lon_grid, lat_grid = np.meshgrid(lons, lats)
+
+        x, y = proj.project_to_indexes(lat_grid, lon_grid)
+
+        y_expected, x_expected = np.meshgrid(np.arange(100), np.arange(200), indexing='ij')
+
+        assert np.all(proj.is_valid_index(x, y)), \
+            "Some in-bounds coordinates were marked FILL_VALUE during antimeridian round-trip"
+        np.testing.assert_array_almost_equal(x, x_expected, decimal=0)
+        np.testing.assert_array_almost_equal(y, y_expected, decimal=0)

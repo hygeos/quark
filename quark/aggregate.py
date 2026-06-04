@@ -419,10 +419,12 @@ class Aggregator:
                     sum_grid.astype(original_dtype), dims=out_dims
                 )
         
-        # Build coordinates
+        # Build coordinates (handle both 1D separable and 2D coupled projections)
+        lat_dims = ["y", "x"] if out_lat.ndim == 2 else ["y"]
+        lon_dims = ["y", "x"] if out_lon.ndim == 2 else ["x"]
         coords: dict[str, xr.DataArray] = {
-            "latitude": xr.DataArray(out_lat, dims=["y"]),
-            "longitude": xr.DataArray(out_lon, dims=["x"]),
+            "latitude": xr.DataArray(out_lat, dims=lat_dims),
+            "longitude": xr.DataArray(out_lon, dims=lon_dims),
         }
         
         # Build global attributes

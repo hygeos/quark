@@ -46,12 +46,15 @@ class EquiRectangular:
             raise ValueError(f"Invalid latitude bounds: south={self.south}, north={self.north}. Must be in [-90, 90] with south < north.")
         if not (-180 <= self.west <= 180 and -180 <= self.east <= 180):
             raise ValueError(f"Invalid longitude bounds: west={self.west}, east={self.east}. Must be in [-180, 180].")
+        if self.west == self.east:
+            raise ValueError(f"Invalid longitude bounds: west and east must differ (both are {self.west}).")
         
         # Calculate the span of the area
         self.lat_span = self.north - self.south
         self.lon_span = self.east - self.west
         if self.lon_span <= 0:
             self.lon_span += 360  # Handle wrapping around the antimeridian
+        self.crosses_antimeridian = self.west > self.east
     
     def project_to_indexes(self, latitude: Union[float, np.ndarray], longitude: Union[float, np.ndarray]) -> tuple[np.ndarray, np.ndarray]:
         """
@@ -72,14 +75,19 @@ class EquiRectangular:
         
         # Normalize longitude to handle wrapping
         lon_normalized = lon.copy()
-        if self.west > self.east:  # Area crosses antimeridian
-            lon_normalized = np.where(lon_normalized < 0, lon_normalized + 360, lon_normalized)
+        if self.crosses_antimeridian:
+            # Shift lons that are west of the western boundary into the [west, west+lon_span] range
+            lon_normalized = np.where(lon < self.west, lon + 360, lon)
         
-        # Check bounds (for non-clipped mode)
+        # Check bounds
+        if self.crosses_antimeridian:  # valid lons are >= west OR <= east
+            lon_out_of_bounds = (lon < self.west) & (lon > self.east)
+        else:
+            lon_out_of_bounds = (lon < self.west) | (lon > self.east)
         out_of_bounds = (
             ~np.isfinite(lat) | ~np.isfinite(lon)
             | (lat < self.south) | (lat > self.north)
-            | (lon < self.west)  | (lon > self.east)
+            | lon_out_of_bounds
         )
         
         # Map latitude from [south, north] to [height-1, 0] (top to bottom in image coordinates)
@@ -89,9 +97,9 @@ class EquiRectangular:
         # Map longitude from [west, east] to [0, width-1]
         x_indexes = (lon_normalized - self.west) / self.lon_span * (self.width - 1)
         
-        # Round to nearest integer and convert to uint
-        x_indexes = np.round(x_indexes).astype(self.uint_type)
-        y_indexes = np.round(y_indexes).astype(self.uint_type)
+        # Round to nearest integer (floor(x+0.5) = round-half-away-from-zero, unlike np.round)
+        x_indexes = np.floor(x_indexes + 0.5).astype(self.uint_type)
+        y_indexes = np.floor(y_indexes + 0.5).astype(self.uint_type)
         
         # Mark out-of-bounds with FILL_VALUE (max value of uint type)
         x_indexes = np.where(out_of_bounds, self.FILL_VALUE_OOB, x_indexes)
@@ -113,7 +121,7 @@ class EquiRectangular:
         y_indexes = np.arange(self.height)
         
         # Map from pixel coordinates to geographic coordinates
-        # x: [0, width-1] -> [west, east]
+        # x: [0, width-1] -> [west, east]  (guard against width=1 to avoid 0/0)
         longitude = self.west + (x_indexes / (self.width - 1)) * self.lon_span
         
         # y: [0, height-1] -> [north, south] (top to bottom)
@@ -135,8 +143,11 @@ class EquiRectangular:
         lat = np.atleast_1d(np.asarray(latitude))
         lon = np.atleast_1d(np.asarray(longitude))
         
-        in_bounds = (lat >= self.south) & (lat <= self.north) & \
-                   (lon >= self.west) & (lon <= self.east)
+        if self.crosses_antimeridian:  # valid lons are >= west OR <= east
+            lon_in_bounds = (lon >= self.west) | (lon <= self.east)
+        else:
+            lon_in_bounds = (lon >= self.west) & (lon <= self.east)
+        in_bounds = (lat >= self.south) & (lat <= self.north) & lon_in_bounds
         
         return in_bounds
     
