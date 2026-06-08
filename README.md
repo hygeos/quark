@@ -14,8 +14,8 @@ It is designed to be simple for common workflows and extensible for advanced use
 
 ## Highlights
 
-- N-dimensions datasets, 2D, 3D, 4D, etc, rasters
-- Multiple datasets processing
+- N-dimensional datasets — 2D, 3D, 4D, and beyond
+- Multi-dataset processing
 - Supersampling for improved spatial coverage
 - Multiple projections
 - Kahan Summation for improved accuracy (requires numba)
@@ -34,6 +34,9 @@ It is designed to be simple for common workflows and extensible for advanced use
 - [Input Model](#input-model)
 - [Advanced: Kahan Summation](#advanced-kahan-summation)
 - [Development](#development)
+- [License](#license)
+
+## Installation
 
 ```bash
 pixi install
@@ -180,7 +183,7 @@ result = Aggregator(
 ```
 
 **Note:** Kahan Summation requires `numba` to be installed in the environment.
-**Note:** Kahan Summation is slower than naive sumation.
+**Note:** Kahan Summation is slower than naive summation.
 
 
 ## Development
@@ -191,4 +194,4 @@ pixi run pytest tests/
 
 ## License
 
-MIT. See [LICENSE](/home/Joackim/projects/quartz/LICENSE).
+MIT. See [LICENSE](LICENSE).
