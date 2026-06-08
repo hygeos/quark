@@ -41,7 +41,7 @@ pytest-xdist = "*"
 numpy = "*"
 xarray = "*"
 netcdf4 = "*"
-numba = "*"
+# numba = "*"
 
 [tool.pixi.environments]
 default = { features = ['sys', 'sub', 'dev'], solve-group = "default" }
