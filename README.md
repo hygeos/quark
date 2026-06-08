@@ -1,7 +1,10 @@
 # Quark
 
-QUARK is a reprojection and aggregation engine for xarray datasets with 2-D geolocation arrays.
+Quantized Array Reprojection with Kahan Summation
 
+---
+
+Quark is a reprojection and aggregation engine for xarray datasets with 2-D geolocation arrays.
 It is designed to be simple for common workflows and extensible for advanced use cases. 
 
 ## Map Example
