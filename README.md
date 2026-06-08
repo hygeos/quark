@@ -1,8 +1,16 @@
-# quark
+# Quark
 
 QUARK is a reprojection and aggregation engine for xarray datasets with 2-D geolocation arrays.
 
 It is designed to be simple for common workflows and extensible for advanced use cases. 
+
+## Map Example
+
+<p align="center">
+  <img src="assets/img/daily_PAR_polar_example.png" alt="Daily PAR reprojected to a polar view" width="600">
+  <br>
+  <em>Figure 1 — SEN3 OLCI: Daily PAR (Photosynthetically Active Radiation) aggregated and reprojected to a polar view using QUARK.</em>
+</p>
 
 ## Highlights
 
@@ -11,8 +19,6 @@ It is designed to be simple for common workflows and extensible for advanced use
 - Supersampling for improved spatial coverage
 - Multiple projections
 - Kahan Summation for improved accuracy (requires numba)
-
-![Daily PAR reprojected to a Northern polar projection](assets/img/daily_PAR_polar_example.png)
 
 ## Table of Contents
 
