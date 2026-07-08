@@ -2,7 +2,7 @@ import numpy as np
 from typing import Union, Optional, Literal
 
 
-class LambertAzimuthal:
+class LambertAzimutal:
     """
     Lambert azimuthal equidistant projection with a parametrized center point.
 

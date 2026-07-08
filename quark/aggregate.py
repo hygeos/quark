@@ -46,7 +46,7 @@ class Aggregator:
         fail_on_schema_mismatch: bool = True,
         sum_method: Literal["simple", "kahan"] = "simple",
         skipna: bool = True,
-        supersampler: supersampling.BaseSuperSampler | None = None,
+        supersampler: supersampling._BaseSuperSampler | None = None,
         return_counts: bool = False,
         return_sums: bool = False,
         dtype=None,
@@ -206,7 +206,7 @@ class Aggregator:
             for i in range(factor):
                 for j in range(factor):
                     # Check if we should project center
-                    offset_y, offset_x = supersampling.compute_subpixel_offset(i, j, factor)
+                    offset_y, offset_x = supersampling._compute_subpixel_offset(i, j, factor)
                     is_center = (offset_y == 0 and offset_x == 0)
                     
                     if is_center and not self.supersampler.project_center:

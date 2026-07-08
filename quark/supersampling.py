@@ -16,7 +16,7 @@ from typing import Literal
 import numpy as np
 
 
-def compute_subpixel_offset(i: int, j: int, supersampling: int) -> tuple[float, float]:
+def _compute_subpixel_offset(i: int, j: int, supersampling: int) -> tuple[float, float]:
     """
     Compute fractional offset for subpixel (i, j).
     
@@ -46,7 +46,7 @@ def compute_subpixel_offset(i: int, j: int, supersampling: int) -> tuple[float, 
     return offset_y, offset_x
 
 
-def compute_pixel_widths_xyz(
+def _compute_pixel_widths_xyz(
     lat: np.ndarray,
     lon: np.ndarray,
 ) -> np.ndarray:
@@ -143,7 +143,7 @@ def compute_pixel_widths_xyz(
     return angular_width_deg
 
 
-def supersample_subpixel_coords_spatial(
+def _supersample_subpixel_coords_spatial(
     lat: np.ndarray,
     lon: np.ndarray,
     offset_y: float,
@@ -182,7 +182,7 @@ def supersample_subpixel_coords_spatial(
     """
     # Compute or use provided pixel widths
     if pixel_widths is None:
-        pixel_widths = compute_pixel_widths_xyz(lat, lon)
+        pixel_widths = _compute_pixel_widths_xyz(lat, lon)
     
     # Apply fractional offsets using adaptive pixel widths
     lat_sub = lat + offset_y * pixel_widths
@@ -195,7 +195,7 @@ def supersample_subpixel_coords_spatial(
     return lat_sub, lon_sub, (slice(None), slice(None))
 
 
-def supersample_subpixel_coords_constant(
+def _supersample_subpixel_coords_constant(
     lat: np.ndarray,
     lon: np.ndarray,
     offset_y: float,
@@ -249,7 +249,7 @@ def supersample_subpixel_coords_constant(
     return lat_sub, lon_sub, (slice(None), slice(None))
 
 
-def interpolate_subpixel_coords(
+def _interpolate_subpixel_coords(
     lat: np.ndarray,
     lon: np.ndarray,
     offset_y: float,
@@ -292,11 +292,11 @@ def interpolate_subpixel_coords(
     if subpixel_mode == "constant":
         if pixel_width_m is None:
             raise ValueError("pixel_width_m required for constant mode")
-        return supersample_subpixel_coords_constant(
+        return _supersample_subpixel_coords_constant(
             lat, lon, offset_y, offset_x, pixel_width_m
         )
     else:  # spatial mode
-        return supersample_subpixel_coords_spatial(
+        return _supersample_subpixel_coords_spatial(
             lat, lon, offset_y, offset_x, pixel_widths
         )
 
@@ -305,7 +305,7 @@ def interpolate_subpixel_coords(
 # Supersampler Classes (Strategy Pattern)
 # ---------------------------------------------------------------------------
 
-class BaseSuperSampler(ABC):
+class _BaseSuperSampler(ABC):
     """
     Abstract base class for supersampling strategies.
     
@@ -369,13 +369,13 @@ class BaseSuperSampler(ABC):
         pass
 
 
-class SpatialSuperSampler(BaseSuperSampler):
+class SpatialSuperSampler(_BaseSuperSampler):
     """
     XYZ-based adaptive supersampling.
     
     Computes per-pixel angular widths from 3D Cartesian neighbor distances,
     accounting for spherical geometry and latitude-dependent spacing.
-    Processes the full grid (no edge exclusion), allowing any factor >= 2.
+    Processes the full grid (no edge exclusion)
     
     Parameters
     ----------
@@ -398,19 +398,19 @@ class SpatialSuperSampler(BaseSuperSampler):
     
     def prepare(self, lat: np.ndarray, lon: np.ndarray) -> None:
         """Compute pixel widths once per dataset."""
-        self._pixel_widths = compute_pixel_widths_xyz(lat, lon)
+        self._pixel_widths = _compute_pixel_widths_xyz(lat, lon)
     
     def compute_coords(
         self, lat: np.ndarray, lon: np.ndarray, i: int, j: int
     ) -> tuple[np.ndarray, np.ndarray, tuple[slice, slice]]:
         """Compute adaptive subpixel coordinates."""
-        offset_y, offset_x = compute_subpixel_offset(i, j, self.factor)
-        return supersample_subpixel_coords_spatial(
+        offset_y, offset_x = _compute_subpixel_offset(i, j, self.factor)
+        return _supersample_subpixel_coords_spatial(
             lat, lon, offset_y, offset_x, self._pixel_widths
         )
 
 
-class ConstantSuperSampler(BaseSuperSampler):
+class ConstantSuperSampler(_BaseSuperSampler):
     """
     Constant-spacing supersampling.
     
@@ -482,7 +482,7 @@ class ConstantSuperSampler(BaseSuperSampler):
         self, lat: np.ndarray, lon: np.ndarray, i: int, j: int
     ) -> tuple[np.ndarray, np.ndarray, tuple[slice, slice]]:
         """Compute constant-spacing subpixel coordinates."""
-        offset_y, offset_x = compute_subpixel_offset(i, j, self.factor)
-        return supersample_subpixel_coords_constant(
+        offset_y, offset_x = _compute_subpixel_offset(i, j, self.factor)
+        return _supersample_subpixel_coords_constant(
             lat, lon, offset_y, offset_x, self.pixel_width_m
         )
