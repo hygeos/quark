@@ -30,9 +30,9 @@ quark = { path = ".", editable = true, extras = ["git"] }
 
 [tool.pixi.tasks]
 tests = "pytest tests/"
-docs-build = "quartodoc build --config /home/Joackim/projects/quark/docs/_quarto.yml"
-docs-render = { cmd = "quarto render /home/Joackim/projects/quark/docs/", depends-on = ["docs-build"] }
-docs-preview = { cmd = "quarto preview /home/Joackim/projects/quark/docs/", depends-on = ["docs-build"] }
+docs-build = "quartodoc build --config docs/_quarto.yml"
+docs-render = { cmd = "quarto render docs/", depends-on = ["docs-build"] }
+docs-preview = { cmd = "quarto preview docs/", depends-on = ["docs-build"] }
 
 
 [tool.pixi.dependencies]
