@@ -1,0 +1,94 @@
+---
+title: "Reprojecting L1 Data to Equirectangular"
+description: "How to reproject swath or L1 geolocated data to a regular equirectangular grid."
+---
+
+This tutorial shows how to reproject L1 swath data (with 2-D latitude/longitude arrays) to a regular equirectangular grid, optionally focused on a site of interest.
+
+## Scenario
+
+We have an ECOSTRESS LST swath dataset with 2-D geolocation arrays and want to reproject it to a regular grid centered on a specific location.
+
+## Step 1 — Open the source dataset
+
+```python
+import xarray as xr
+
+ds = xr.open_dataset("ECOSTRESS__UNPROJ__Lille__2024-08-01__002.nc")
+```
+
+## Step 2 — Define the output area
+
+Use `bbox_from_point` to create a bounding box around a site of interest:
+
+```python
+from quark.utils import bbox_from_point, get_size_from_bbox
+
+site_lat, site_lon = 50.6292, 3.0573  # Lille, France
+area = bbox_from_point(site_lat, site_lon, width=0.5, height=0.5)
+
+# Compute grid dimensions from desired resolution
+width, height = get_size_from_bbox(area, resolution="70m")
+```
+
+Alternatively, derive the bounding box from the data itself:
+
+```python
+from quark.utils import bbox_area
+
+area = bbox_area(ds, margin=0.05)
+```
+
+## Step 3 — Create the projection
+
+```python
+from quark.projection.equirectangular import EquiRectangular
+
+projection = EquiRectangular(width=width, height=height, area=area)
+```
+
+## Step 4 — Configure supersampling
+
+For swath data, `ConstantSuperSampler` is recommended:
+
+```python
+from quark.supersampling import ConstantSuperSampler
+
+supersampler = ConstantSuperSampler(
+    factor=2,
+    pixel_width="70m",
+    project_center=True,
+)
+```
+
+::: {.callout-warning}
+Avoid `SpatialSuperSampler` for unstructured swaths or badly ordered 2-D arrays — it assumes array neighbors are spatial neighbors.
+:::
+
+## Step 5 — Run the aggregation
+
+```python
+import numpy as np
+from quark.aggregate import Aggregator
+
+agg = Aggregator(
+    projection=projection,
+    datasets=[ds],
+    supersampler=supersampler,
+    return_counts=True,
+    dtype=np.float32,
+)
+
+result = agg.compute()
+result.to_netcdf("ECOSTRESS__REPROJ__Lille__2024-08-01__002.nc")
+```
+
+## Result
+
+The output is a regular equirectangular grid covering the bounding box, with aggregated LST values and a `_count` variable indicating source pixel coverage per target pixel.
+
+## Tips
+
+- Adjust `resolution` in `get_size_from_bbox` to control output pixel size.
+- Use `sum_method="kahan"` for higher numerical precision (requires numba).
+- Pass multiple datasets to `datasets=[ds1, ds2]` to accumulate across scenes.

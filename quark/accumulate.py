@@ -26,7 +26,7 @@ except ImportError:
 # Base Accumulator
 # ---------------------------------------------------------------------------
 
-class BaseAccumulator(ABC):
+class _BaseAccumulator(ABC):
     """
     Base class for accumulation strategies.
     
@@ -140,7 +140,7 @@ class BaseAccumulator(ABC):
 # Concrete Accumulator Implementations
 # ---------------------------------------------------------------------------
 
-class SimpleAccumulator(BaseAccumulator):
+class SimpleAccumulator(_BaseAccumulator):
     """
     Simple accumulator using np.bincount.
     
@@ -182,7 +182,7 @@ if HAS_NUMBA:
             cnt_acc[idx] += 1
 
 
-class KahanAccumulator(BaseAccumulator):
+class KahanAccumulator(_BaseAccumulator):
     """
     Kahan (compensated) accumulator for reduced floating-point error.
     

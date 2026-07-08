@@ -10,7 +10,7 @@ It is designed to be simple for common workflows and extensible for advanced use
 ## Map Example
 
 <p align="center">
-  <img src="assets/img/daily_PAR_polar_example.png" alt="Daily PAR reprojected to a polar view" width="600">
+  <img src="docs/img/daily_PAR_polar_example.png" alt="Daily PAR reprojected to a polar view" width="600">
   <br>
   <em>Figure 1 — SEN3 OLCI: Daily PAR (Photosynthetically Active Radiation) aggregated and reprojected to a polar view using QUARK.</em>
 </p>

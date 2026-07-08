@@ -47,6 +47,11 @@ website:
         menu:
           - text: "Getting Started"
             file: articles/getting-started.qmd
+          - text: "Reprojecting to Polar View"
+            file: articles/reproject-to-polar.qmd
+          - text: "Reprojecting L1 to Equirectangular"
+            file: articles/reproject-l1-equirectangular.qmd
+
     right:
       - icon: github
         href: "https://github.com/hygeos/Quark"
@@ -61,6 +66,8 @@ website:
     - title: "Guides"
       contents:
         - articles/getting-started.qmd
+        - articles/reproject-to-polar.qmd
+        - articles/reproject-l1-equirectangular.qmd
 
 
 quartodoc:
@@ -74,7 +81,7 @@ quartodoc:
 
 
   sections:
-    - title: "basics"
+    - title: "quark"
       contents:
         - aggregate
         - supersampling

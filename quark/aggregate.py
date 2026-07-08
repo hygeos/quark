@@ -141,7 +141,7 @@ class Aggregator:
             )
         
         # Allocate accumulators with per-variable index dtypes
-        self.accumulators: dict[str, accumulate.BaseAccumulator] = {}
+        self.accumulators: dict[str, accumulate._BaseAccumulator] = {}
         self.var_index_dtype: dict[str, type] = {}
         
         for var_name in self.target_vars:
