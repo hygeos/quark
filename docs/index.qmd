@@ -1,0 +1,18 @@
+---
+title: quark
+subtitle: "Quantized Array Reprojection Transform on Z-levels"
+---
+
+## What is quark ?
+
+Quantized Array Reprojection Transform on Z-levels
+
+## Installation
+
+```bash
+hyp add --hygeos quark
+```
+
+## Quickstart
+
+See the documentation guides for usage examples.

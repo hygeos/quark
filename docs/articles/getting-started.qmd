@@ -1,0 +1,16 @@
+---
+title: "Getting Started"
+description: "Quick guide to using quark"
+---
+
+## Installation
+
+Install quark from the GitHub repository:
+
+```bash
+hyp add --hygeos quark
+```
+
+## Basic workflow
+
+...

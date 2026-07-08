@@ -1,0 +1,88 @@
+project:
+  type: website
+  preview:
+    port: 8000
+    browser: false
+
+# tell quarto to read the generated sidebar and styles
+metadata-files:
+  - reference/_sidebar.yml
+
+format:
+  html:
+    theme:
+      light: cosmo
+      dark: darkly
+    css:
+      - _extensions/hygeos-docs/css/hygeos-docs.css
+    toc: true
+
+execute:
+  echo: false
+  cache: true
+  warning: false
+
+
+website:
+  title: "quark"
+  site-url: "https://hygeos.github.io/Quark/"
+  repo-url: "https://github.com/hygeos/Quark"
+  repo-actions: [issue]
+  page-navigation: true
+  open-graph: true
+  search:
+    location: navbar
+    type: overlay
+  navbar:
+    background: primary
+    search: true
+    logo: _extensions/hygeos-docs/logo-carre-blanc.png
+    logo-alt: "HYGEOS"
+    left:
+      - text: "Home"
+        file: index.qmd
+      - text: "Reference"
+        href: reference/
+      - text: "Guides"
+        menu:
+          - text: "Getting Started"
+            file: articles/getting-started.qmd
+    right:
+      - icon: github
+        href: "https://github.com/hygeos/Quark"
+        aria-label: "GitHub Repository"
+  page-footer:
+    center: |
+      Powered by [HYGEOS](https://www.hygeos.com) | quark &copy; 2026 | version 0.1.0
+  sidebar:
+    - title: "Overview"
+      contents:
+        - index.qmd
+    - title: "Guides"
+      contents:
+        - articles/getting-started.qmd
+
+
+quartodoc:
+  package: quark
+  dir: reference
+  title: API Reference
+
+  # write sidebar and style data
+  sidebar: reference/_sidebar.yml
+  css: reference/_styles-quartodoc.css
+
+
+  sections:
+    - title: "basics"
+      contents:
+        - aggregate
+        - supersampling
+        - accumulate
+  
+    - title: "projection"
+      contents:
+        - projection.EquiRectangular
+        - projection.LambertAzimutal
+        - projection.PolarNorth
+        - projection.PolarSouth
