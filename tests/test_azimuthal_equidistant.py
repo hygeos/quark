@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from quark.projection.lambertazimutal import LambertAzimuthal 
+from quark.projection.lambertazimutal import LambertAzimutal 
 
 
 class TestAzimuthalEquidistantInit:
@@ -8,7 +8,7 @@ class TestAzimuthalEquidistantInit:
 
     def test_init_north_pole_default(self):
         """Test initialization with default North Pole center."""
-        proj = LambertAzimuthal (500, 500)
+        proj = LambertAzimutal (500, 500)
         assert proj.width == 500
         assert proj.height == 500
         assert proj.center_latitude == 90.0
@@ -18,13 +18,13 @@ class TestAzimuthalEquidistantInit:
 
     def test_init_south_pole(self):
         """Test initialization with South Pole center."""
-        proj = LambertAzimuthal (500, 500, center_latitude=-90.0)
+        proj = LambertAzimutal (500, 500, center_latitude=-90.0)
         assert proj.center_latitude == -90.0
         assert proj.radius == 90.0
 
     def test_init_equatorial(self):
         """Test initialization with equatorial center."""
-        proj = LambertAzimuthal (
+        proj = LambertAzimutal (
             500, 500, center_latitude=0.0, center_longitude=45.0
         )
         assert proj.center_latitude == 0.0
@@ -32,33 +32,33 @@ class TestAzimuthalEquidistantInit:
 
     def test_init_custom_radius(self):
         """Test initialization with custom radius."""
-        proj = LambertAzimuthal (500, 500, radius=45.0)
+        proj = LambertAzimutal (500, 500, radius=45.0)
         assert proj.radius == 45.0
 
     def test_init_invalid_latitude(self):
         """Test that invalid center latitude raises ValueError."""
         with pytest.raises(ValueError, match="center_latitude"):
-            LambertAzimuthal (100, 100, center_latitude=91.0)
+            LambertAzimutal (100, 100, center_latitude=91.0)
         with pytest.raises(ValueError, match="center_latitude"):
-            LambertAzimuthal (100, 100, center_latitude=-91.0)
+            LambertAzimutal (100, 100, center_latitude=-91.0)
 
     def test_init_invalid_longitude(self):
         """Test that invalid center longitude raises ValueError."""
         with pytest.raises(ValueError, match="center_longitude"):
-            LambertAzimuthal (100, 100, center_longitude=181.0)
+            LambertAzimutal (100, 100, center_longitude=181.0)
         with pytest.raises(ValueError, match="center_longitude"):
-            LambertAzimuthal (100, 100, center_longitude=-181.0)
+            LambertAzimutal (100, 100, center_longitude=-181.0)
 
     def test_init_invalid_radius(self):
         """Test that invalid radius raises ValueError."""
         with pytest.raises(ValueError, match="radius"):
-            LambertAzimuthal (100, 100, radius=0.0)
+            LambertAzimutal (100, 100, radius=0.0)
         with pytest.raises(ValueError, match="radius"):
-            LambertAzimuthal (100, 100, radius=181.0)
+            LambertAzimutal (100, 100, radius=181.0)
 
     def test_init_uint32_selection(self):
         """Test that uint32 is selected for large dimensions."""
-        proj = LambertAzimuthal (70000, 70000)
+        proj = LambertAzimutal (70000, 70000)
         assert proj.uint_type == np.uint32
 
 
@@ -67,14 +67,14 @@ class TestProjectToIndexesNorthPole:
 
     def test_center_maps_to_image_center(self):
         """Test that the center point maps to the image center."""
-        proj = LambertAzimuthal (101, 101, center_latitude=90.0)
+        proj = LambertAzimutal (101, 101, center_latitude=90.0)
         x, y = proj.project_to_indexes(90.0, 0.0)
         assert x[0] == 50
         assert y[0] == 50
 
     def test_equator_points(self):
         """Test that equator points are at the edge of the projection."""
-        proj = LambertAzimuthal (201, 201, center_latitude=90.0, center_longitude=0.0)
+        proj = LambertAzimutal (201, 201, center_latitude=90.0, center_longitude=0.0)
         # Equator at lon=0 should be at the bottom of the image
         x, y = proj.project_to_indexes(0.0, 0.0)
         assert x[0] == 100  # center x
@@ -82,35 +82,35 @@ class TestProjectToIndexesNorthPole:
 
     def test_equator_90_east(self):
         """Test equator at 90E is at the right edge."""
-        proj = LambertAzimuthal (201, 201, center_latitude=90.0, center_longitude=0.0)
+        proj = LambertAzimutal (201, 201, center_latitude=90.0, center_longitude=0.0)
         x, y = proj.project_to_indexes(0.0, 90.0)
         assert x[0] == 200  # right edge
         assert y[0] == 100  # center y
 
     def test_equator_90_west(self):
         """Test equator at 90W is at the left edge."""
-        proj = LambertAzimuthal (201, 201, center_latitude=90.0, center_longitude=0.0)
+        proj = LambertAzimutal (201, 201, center_latitude=90.0, center_longitude=0.0)
         x, y = proj.project_to_indexes(0.0, -90.0)
         assert x[0] == 0  # left edge
         assert y[0] == 100  # center y
 
     def test_equator_180(self):
         """Test equator at 180 is at the top edge."""
-        proj = LambertAzimuthal (201, 201, center_latitude=90.0, center_longitude=0.0)
+        proj = LambertAzimutal (201, 201, center_latitude=90.0, center_longitude=0.0)
         x, y = proj.project_to_indexes(0.0, 180.0)
         assert x[0] == 100  # center x
         assert y[0] == 0  # top edge
 
     def test_antipodal_point_out_of_bounds(self):
         """Test that the antipodal point (South Pole) is out of bounds."""
-        proj = LambertAzimuthal (201, 201, center_latitude=90.0)
+        proj = LambertAzimutal (201, 201, center_latitude=90.0)
         x, y = proj.project_to_indexes(-90.0, 0.0)
         assert x[0] == proj.FILL_VALUE_OOB
         assert y[0] == proj.FILL_VALUE_OOB
 
     def test_mid_latitude(self):
         """Test a mid-latitude point."""
-        proj = LambertAzimuthal (201, 201, center_latitude=90.0, center_longitude=0.0)
+        proj = LambertAzimutal (201, 201, center_latitude=90.0, center_longitude=0.0)
         # 45N at lon=0 should be halfway between center and edge
         x, y = proj.project_to_indexes(45.0, 0.0)
         assert x[0] == 100  # center x
@@ -122,28 +122,28 @@ class TestProjectToIndexesEquatorial:
 
     def test_center_maps_to_image_center(self):
         """Test that the center point maps to the image center."""
-        proj = LambertAzimuthal (101, 101, center_latitude=0.0, center_longitude=0.0)
+        proj = LambertAzimutal (101, 101, center_latitude=0.0, center_longitude=0.0)
         x, y = proj.project_to_indexes(0.0, 0.0)
         assert x[0] == 50
         assert y[0] == 50
 
     def test_north_pole_at_top(self):
         """Test that North Pole is at the top edge."""
-        proj = LambertAzimuthal (201, 201, center_latitude=0.0, center_longitude=0.0)
+        proj = LambertAzimutal (201, 201, center_latitude=0.0, center_longitude=0.0)
         x, y = proj.project_to_indexes(90.0, 0.0)
         assert x[0] == 100  # center x
         assert y[0] == 0  # top edge
 
     def test_south_pole_at_bottom(self):
         """Test that South Pole is at the bottom edge."""
-        proj = LambertAzimuthal (201, 201, center_latitude=0.0, center_longitude=0.0)
+        proj = LambertAzimutal (201, 201, center_latitude=0.0, center_longitude=0.0)
         x, y = proj.project_to_indexes(-90.0, 0.0)
         assert x[0] == 100  # center x
         assert y[0] == 200  # bottom edge
 
     def test_antimeridian_out_of_bounds(self):
         """Test that the antimeridian is out of bounds for equatorial view."""
-        proj = LambertAzimuthal (201, 201, center_latitude=0.0, center_longitude=0.0)
+        proj = LambertAzimutal (201, 201, center_latitude=0.0, center_longitude=0.0)
         x, y = proj.project_to_indexes(0.0, 180.0)
         assert x[0] == proj.FILL_VALUE_OOB
         assert y[0] == proj.FILL_VALUE_OOB
@@ -154,7 +154,7 @@ class TestProjectToIndexesCustomRadius:
 
     def test_points_beyond_radius_out_of_bounds(self):
         """Test that points beyond the radius are out of bounds."""
-        proj = LambertAzimuthal (201, 201, center_latitude=90.0, radius=45.0)
+        proj = LambertAzimutal (201, 201, center_latitude=90.0, radius=45.0)
         # 45N is at angular distance 45 from North Pole — should be at edge
         x, y = proj.project_to_indexes(45.0, 0.0)
         assert x[0] == 100
@@ -167,7 +167,7 @@ class TestProjectToIndexesCustomRadius:
 
     def test_points_within_radius_valid(self):
         """Test that points within the radius are valid."""
-        proj = LambertAzimuthal (201, 201, center_latitude=90.0, radius=45.0)
+        proj = LambertAzimutal (201, 201, center_latitude=90.0, radius=45.0)
         x, y = proj.project_to_indexes(60.0, 0.0)
         assert x[0] != proj.FILL_VALUE_OOB
         assert y[0] != proj.FILL_VALUE_OOB
@@ -178,14 +178,14 @@ class TestGetCoordinates:
 
     def test_returns_correct_shape(self):
         """Test that get_coordinates returns arrays of correct shape."""
-        proj = LambertAzimuthal (100, 80)
+        proj = LambertAzimutal (100, 80)
         lat, lon = proj.get_coordinates()
         assert lat.shape == (80, 100)
         assert lon.shape == (80, 100)
 
     def test_center_pixel_coordinates(self):
         """Test that the center pixel has the correct coordinates."""
-        proj = LambertAzimuthal (101, 101, center_latitude=90.0, center_longitude=0.0)
+        proj = LambertAzimutal (101, 101, center_latitude=90.0, center_longitude=0.0)
         lat, lon = proj.get_coordinates()
         assert np.isclose(lat[50, 50], 90.0, atol=1e-6)
         # Center should be finite (not NaN)
@@ -193,7 +193,7 @@ class TestGetCoordinates:
 
     def test_edge_pixels_are_invalid(self):
         """Test that corner pixels have NaN coordinates."""
-        proj = LambertAzimuthal (100, 100)
+        proj = LambertAzimutal (100, 100)
         lat, lon = proj.get_coordinates()
         assert np.isnan(lat[0, 0])  # top-left corner
         assert np.isnan(lat[0, -1])  # top-right corner
@@ -202,7 +202,7 @@ class TestGetCoordinates:
 
     def test_valid_pixels_are_finite(self):
         """Test that pixels within the projection circle have finite coordinates."""
-        proj = LambertAzimuthal (100, 100)
+        proj = LambertAzimutal (100, 100)
         lat, lon = proj.get_coordinates()
         # Center pixels should be finite
         assert np.isfinite(lat[50, 50])
@@ -210,7 +210,7 @@ class TestGetCoordinates:
 
     def test_invalid_pixels_are_nan(self):
         """Test that corner pixels (outside projection circle) have NaN coordinates."""
-        proj = LambertAzimuthal (100, 100)
+        proj = LambertAzimutal (100, 100)
         lat, lon = proj.get_coordinates()
         assert np.isnan(lat[0, 0])
         assert np.isnan(lon[0, 0])
@@ -221,22 +221,22 @@ class TestIsInBounds:
 
     def test_center_in_bounds(self):
         """Test that the center point is in bounds."""
-        proj = LambertAzimuthal (100, 100, center_latitude=90.0)
+        proj = LambertAzimutal (100, 100, center_latitude=90.0)
         assert proj.is_in_bounds(90.0, 0.0)[0]
 
     def test_equator_in_bounds_hemisphere(self):
         """Test that equator is in bounds for hemisphere view."""
-        proj = LambertAzimuthal (100, 100, center_latitude=90.0, radius=90.0)
+        proj = LambertAzimutal (100, 100, center_latitude=90.0, radius=90.0)
         assert proj.is_in_bounds(0.0, 0.0)[0]
 
     def test_south_pole_out_of_bounds_north_view(self):
         """Test that South Pole is out of bounds for North Pole view."""
-        proj = LambertAzimuthal (100, 100, center_latitude=90.0)
+        proj = LambertAzimutal (100, 100, center_latitude=90.0)
         assert not proj.is_in_bounds(-90.0, 0.0)[0]
 
     def test_array_input(self):
         """Test that array inputs work correctly."""
-        proj = LambertAzimuthal (100, 100, center_latitude=90.0)
+        proj = LambertAzimutal (100, 100, center_latitude=90.0)
         lats = np.array([90.0, 45.0, 0.0, -45.0])
         lons = np.array([0.0, 0.0, 0.0, 0.0])
         result = proj.is_in_bounds(lats, lons)
@@ -251,12 +251,12 @@ class TestIsValidIndex:
 
     def test_valid_indexes(self):
         """Test that valid indexes return True."""
-        proj = LambertAzimuthal (100, 100)
+        proj = LambertAzimutal (100, 100)
         assert proj.is_valid_index(np.array([50]), np.array([50]))[0]
 
     def test_fill_value_indexes(self):
         """Test that FILL_VALUE indexes return False."""
-        proj = LambertAzimuthal (100, 100)
+        proj = LambertAzimutal (100, 100)
         assert not proj.is_valid_index(
             np.array([proj.FILL_VALUE_OOB]), np.array([proj.FILL_VALUE_OOB])
         )[0]
@@ -267,7 +267,7 @@ class TestRoundTrip:
 
     def test_north_pole_round_trip(self):
         """Test that projecting known coordinates gives expected pixels."""
-        proj = LambertAzimuthal (201, 201, center_latitude=90.0, center_longitude=0.0)
+        proj = LambertAzimutal (201, 201, center_latitude=90.0, center_longitude=0.0)
 
         # Known points and their expected pixel positions
         test_cases = [
@@ -288,7 +288,7 @@ class TestRoundTrip:
 
     def test_equatorial_round_trip(self):
         """Test round-trip for equatorial projection."""
-        proj = LambertAzimuthal (201, 201, center_latitude=0.0, center_longitude=0.0)
+        proj = LambertAzimutal (201, 201, center_latitude=0.0, center_longitude=0.0)
 
         lat_grid, lon_grid = proj.get_coordinates()
 
@@ -325,7 +325,7 @@ class TestDistancesPreserved:
 
     def test_distance_preservation_north_pole(self):
         """Test that angular distance from center equals pixel distance ratio."""
-        proj = LambertAzimuthal (201, 201, center_latitude=90.0, center_longitude=0.0)
+        proj = LambertAzimutal (201, 201, center_latitude=90.0, center_longitude=0.0)
 
         # Points at different latitudes on the same meridian
         lats = np.array([90.0, 80.0, 70.0, 60.0, 50.0, 40.0, 30.0, 20.0, 10.0, 0.0])
@@ -348,7 +348,7 @@ class TestDistancesPreserved:
 
     def test_distance_preservation_equatorial(self):
         """Test distance preservation for equatorial projection."""
-        proj = LambertAzimuthal (201, 201, center_latitude=0.0, center_longitude=0.0)
+        proj = LambertAzimutal (201, 201, center_latitude=0.0, center_longitude=0.0)
 
         # Points along the equator
         lats = np.zeros(10)
@@ -370,8 +370,8 @@ class TestRotation:
 
     def test_rotation_zero_is_default(self):
         """Test that rotation=0 gives the same result as no rotation."""
-        proj_default = LambertAzimuthal (201, 201, center_latitude=90.0)
-        proj_rotated = LambertAzimuthal (201, 201, center_latitude=90.0, rotation=0.0)
+        proj_default = LambertAzimutal (201, 201, center_latitude=90.0)
+        proj_rotated = LambertAzimutal (201, 201, center_latitude=90.0, rotation=0.0)
 
         x1, y1 = proj_default.project_to_indexes(0.0, 90.0)
         x2, y2 = proj_rotated.project_to_indexes(0.0, 90.0)
@@ -380,7 +380,7 @@ class TestRotation:
 
     def test_rotation_90_degrees(self):
         """Test that rotation=90 shifts equator points by 90 degrees."""
-        proj = LambertAzimuthal (201, 201, center_latitude=90.0, rotation=90.0)
+        proj = LambertAzimutal (201, 201, center_latitude=90.0, rotation=90.0)
 
         # Without rotation, equator at lon=90 is at (200, 100) — right edge
         # With rotation=90, equator at lon=0 should now be at (200, 100)
@@ -390,7 +390,7 @@ class TestRotation:
 
     def test_rotation_180_degrees(self):
         """Test that rotation=180 flips the view upside down."""
-        proj = LambertAzimuthal (201, 201, center_latitude=90.0, rotation=180.0)
+        proj = LambertAzimutal (201, 201, center_latitude=90.0, rotation=180.0)
 
         # Without rotation, equator at lon=0 is at (100, 200) — bottom edge
         # With rotation=180, equator at lon=0 should be at (100, 0) — top edge
@@ -400,8 +400,8 @@ class TestRotation:
 
     def test_rotation_360_same_as_zero(self):
         """Test that rotation=360 is same as rotation=0."""
-        proj_default = LambertAzimuthal (201, 201, center_latitude=90.0)
-        proj_360 = LambertAzimuthal (201, 201, center_latitude=90.0, rotation=360.0)
+        proj_default = LambertAzimutal (201, 201, center_latitude=90.0)
+        proj_360 = LambertAzimutal (201, 201, center_latitude=90.0, rotation=360.0)
 
         x1, y1 = proj_default.project_to_indexes(0.0, 45.0)
         x2, y2 = proj_360.project_to_indexes(0.0, 45.0)
@@ -410,8 +410,8 @@ class TestRotation:
 
     def test_rotation_preserves_distances(self):
         """Test that rotation doesn't change distances from center."""
-        proj_default = LambertAzimuthal (201, 201, center_latitude=90.0)
-        proj_rotated = LambertAzimuthal (201, 201, center_latitude=90.0, rotation=45.0)
+        proj_default = LambertAzimutal (201, 201, center_latitude=90.0)
+        proj_rotated = LambertAzimutal (201, 201, center_latitude=90.0, rotation=45.0)
 
         x1, y1 = proj_default.project_to_indexes(45.0, 0.0)
         x2, y2 = proj_rotated.project_to_indexes(45.0, 0.0)
@@ -423,7 +423,7 @@ class TestRotation:
 
     def test_rotation_negative(self):
         """Test that negative rotation works (counter-clockwise)."""
-        proj = LambertAzimuthal (201, 201, center_latitude=90.0, rotation=-90.0)
+        proj = LambertAzimutal (201, 201, center_latitude=90.0, rotation=-90.0)
 
         # rotation=-90: lon=0 moves to left edge, lon=180 moves to right edge
         x, y = proj.project_to_indexes(0.0, 0.0)
@@ -432,7 +432,7 @@ class TestRotation:
 
     def test_rotation_equatorial_center(self):
         """Test rotation with equatorial center."""
-        proj = LambertAzimuthal (201, 201, center_latitude=0.0, center_longitude=0.0, rotation=90.0)
+        proj = LambertAzimutal (201, 201, center_latitude=0.0, center_longitude=0.0, rotation=90.0)
 
         # Without rotation, North Pole is at top (100, 0)
         # With rotation=90, North Pole should be at left (0, 100)
@@ -442,7 +442,7 @@ class TestRotation:
 
     def test_rotation_round_trip(self):
         """Test that get_coordinates with rotation gives consistent results."""
-        proj = LambertAzimuthal (201, 201, center_latitude=90.0, rotation=45.0)
+        proj = LambertAzimutal (201, 201, center_latitude=90.0, rotation=45.0)
 
         lat_grid, lon_grid = proj.get_coordinates()
 
@@ -458,21 +458,21 @@ class TestEdgeCases:
 
     def test_nan_coordinates(self):
         """Test that NaN coordinates are handled gracefully."""
-        proj = LambertAzimuthal (100, 100)
+        proj = LambertAzimutal (100, 100)
         x, y = proj.project_to_indexes(np.nan, 0.0)
         assert x[0] == proj.FILL_VALUE_OOB
         assert y[0] == proj.FILL_VALUE_OOB
 
     def test_inf_coordinates(self):
         """Test that infinite coordinates are handled gracefully."""
-        proj = LambertAzimuthal (100, 100)
+        proj = LambertAzimutal (100, 100)
         x, y = proj.project_to_indexes(np.inf, 0.0)
         assert x[0] == proj.FILL_VALUE_OOB
         assert y[0] == proj.FILL_VALUE_OOB
 
     def test_batch_projection(self):
         """Test projecting multiple points at once."""
-        proj = LambertAzimuthal (100, 100, center_latitude=90.0)
+        proj = LambertAzimutal (100, 100, center_latitude=90.0)
         lats = np.array([90.0, 80.0, 70.0])
         lons = np.array([0.0, 0.0, 0.0])
         x, y = proj.project_to_indexes(lats, lons)
@@ -481,7 +481,7 @@ class TestEdgeCases:
 
     def test_non_square_image(self):
         """Test with non-square image dimensions."""
-        proj = LambertAzimuthal (300, 200, center_latitude=90.0)
+        proj = LambertAzimutal (300, 200, center_latitude=90.0)
         x, y = proj.project_to_indexes(90.0, 0.0)
         # Center: floor((299/2) + 0.5) = 150, floor((199/2) + 0.5) = 100
         assert x[0] == 150
@@ -489,7 +489,7 @@ class TestEdgeCases:
 
     def test_longitude_wrapping(self):
         """Test that longitude wrapping works correctly."""
-        proj = LambertAzimuthal (201, 201, center_latitude=90.0, center_longitude=0.0)
+        proj = LambertAzimutal (201, 201, center_latitude=90.0, center_longitude=0.0)
         # 180 and -180 should give the same result
         x1, y1 = proj.project_to_indexes(0.0, 180.0)
         x2, y2 = proj.project_to_indexes(0.0, -180.0)

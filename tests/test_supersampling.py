@@ -166,14 +166,14 @@ def test_grid_pattern_verification():
     print("="*60)
     
     # Test that subpixel offsets form a proper grid
-    from quark.supersampling import compute_subpixel_offset
+    from quark.supersampling import _compute_subpixel_offset
     
     for factor in [2, 3, 5]:
         print(f"\nFactor {factor}:")
         offsets = []
         for i in range(factor):
             for j in range(factor):
-                offset_y, offset_x = compute_subpixel_offset(i, j, factor)
+                offset_y, offset_x = _compute_subpixel_offset(i, j, factor)
                 offsets.append((offset_y, offset_x))
                 
         # Check symmetry: offsets should be centered around (0, 0)

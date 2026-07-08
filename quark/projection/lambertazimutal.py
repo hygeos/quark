@@ -10,7 +10,7 @@ class LambertAzimutal:
     It maps a hemisphere (or any angular radius) centered on an arbitrary
     latitude/longitude to a square image.
 
-    See: https://en.wikipedia.org/wiki/Azimuthal_equidistant_projection
+    See: [Azimuthal equidistant projection on Wikipedia](https://en.wikipedia.org/wiki/Azimuthal_equidistant_projection)
     """
 
     def __init__(
