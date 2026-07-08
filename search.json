@@ -1,0 +1,485 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "quark",
+    "section": "",
+    "text": "Note\n\n\n\nQUARK is a reprojection and aggregation engine for xarray datasets with 2-D geolocation arrays. It is designed to be simple for common workflows and extensible for advanced use cases.",
+    "crumbs": [
+      "Home",
+      "quark"
+    ]
+  },
+  {
+    "objectID": "index.html#map-example",
+    "href": "index.html#map-example",
+    "title": "quark",
+    "section": "Map Example",
+    "text": "Map Example\n\n\n\n\nDaily PAR reprojected to a polar view\n\n\nFigure 1 — SEN3 OLCI: Daily PAR (Photosynthetically Active Radiation) aggregated and reprojected to a polar view using QUARK.",
+    "crumbs": [
+      "Home",
+      "quark"
+    ]
+  },
+  {
+    "objectID": "index.html#highlights",
+    "href": "index.html#highlights",
+    "title": "quark",
+    "section": "Highlights",
+    "text": "Highlights\n\nN-dimensional datasets — 2D, 3D, 4D, and beyond\nMulti-dataset processing — accumulate across multiple datasets in one pass\nSupersampling — improved spatial coverage with subpixel grids\nMultiple projections — equirectangular, polar, and extensible\nKahan Summation — improved numerical accuracy (requires numba)",
+    "crumbs": [
+      "Home",
+      "quark"
+    ]
+  },
+  {
+    "objectID": "index.html#installation",
+    "href": "index.html#installation",
+    "title": "quark",
+    "section": "Installation",
+    "text": "Installation\nInstall quark from the HYGEOS package index:\nhyp add --hygeos quark\nOr install directly from source:\npip install -e \".[git]\"",
+    "crumbs": [
+      "Home",
+      "quark"
+    ]
+  },
+  {
+    "objectID": "index.html#quick-example",
+    "href": "index.html#quick-example",
+    "title": "quark",
+    "section": "Quick Example",
+    "text": "Quick Example\nimport xarray as xr\n\nfrom quark.aggregate import Aggregator\nfrom quark.projection.equirectangular import EquiRectangular\nfrom quark.utils import bbox_area\n\nds = xr.open_dataset(\"input.nc\")\n\nprojection = EquiRectangular(\n    width=2000,\n    height=2000,\n    area=bbox_area(ds, margin=0.05),\n)\n\nresult = Aggregator(\n    projection=projection,\n    datasets=[ds],\n    return_counts=True,\n).compute()\n\nresult.to_netcdf(\"output.nc\")",
+    "crumbs": [
+      "Home",
+      "quark"
+    ]
+  },
+  {
+    "objectID": "index.html#features-overview",
+    "href": "index.html#features-overview",
+    "title": "quark",
+    "section": "Features Overview",
+    "text": "Features Overview\n\nSupersampling\nSupersampling projects a factor x factor subpixel grid for each source pixel, improving coverage when the source footprint is large relative to the target grid.\nTwo modes are available:\n\nSpatialSuperSampler — estimates local pixel width from neighboring pixels. Works well for structured rasters and well-behaved swaths.\nConstantSuperSampler — uses a fixed width (e.g., \"1km\"). Safer for irregular geolocation data.\n\n\n\n\n\n\n\nWarning\n\n\n\nSpatial supersampling assumes that array neighbors are also spatial neighbors. Do not use it for unstructured inputs, badly ordered swaths, or 2-D arrays whose neighborhood topology is not physically meaningful.\n\n\n\n\nProjections\nProjection support is class-based. Built-in projections include:\n\nEquiRectangular\nLambertAzimutal\nPolarNorth\nPolarSouth\n\nAdditional projection classes can be added as long as they expose the methods expected by Aggregator.\n\n\nKahan Summation\nFor high-precision accumulation, use sum_method=\"kahan\":\nresult = Aggregator(\n    projection=projection,\n    datasets=[ds],\n    sum_method=\"kahan\",\n    return_counts=True,\n).compute()\n\n\n\n\n\n\nTip\n\n\n\nKahan Summation requires numba and is slower than naive summation, but provides significantly better numerical accuracy for large accumulations.",
+    "crumbs": [
+      "Home",
+      "quark"
+    ]
+  },
+  {
+    "objectID": "index.html#input-model",
+    "href": "index.html#input-model",
+    "title": "quark",
+    "section": "Input Model",
+    "text": "Input Model\nQUARK expects:\n\na 2-D latitude variable\na 2-D longitude variable\nmatching shapes and dimensions for both\ndata variables that include those spatial dimensions\n\nThis makes it a strong fit for swaths and geolocated rasters, but not for generic point clouds or arbitrary meshes.",
+    "crumbs": [
+      "Home",
+      "quark"
+    ]
+  },
+  {
+    "objectID": "index.html#next-steps",
+    "href": "index.html#next-steps",
+    "title": "quark",
+    "section": "Next Steps",
+    "text": "Next Steps\n\nGetting Started — step-by-step guide\nAPI Reference — detailed documentation for all classes and functions",
+    "crumbs": [
+      "Home",
+      "quark"
+    ]
+  },
+  {
+    "objectID": "reference/projection.PolarSouth.html",
+    "href": "reference/projection.PolarSouth.html",
+    "title": "projection.PolarSouth",
+    "section": "",
+    "text": "projection.PolarSouth\nprojection.PolarSouth(width, height, radius_deg=90.0, rotation_deg=0.0)\nLambert azimuthal equidistant projection centered on the South Pole.\nConvenience subclass of :class:LambertAzimutal with the center fixed at latitude -90° (South Pole) and longitude 0°. Distances and directions from the pole are preserved, making this projection ideal for visualizing Antarctica or any area within a given angular radius of the pole.\nThe projection maps a circular cap around the pole onto a square image. Meridians radiate outward from the center, and parallels appear as concentric circles.\nSee: Azimuthal equidistant projection on Wikipedia",
+    "crumbs": [
+      "projection",
+      "projection.PolarSouth"
+    ]
+  },
+  {
+    "objectID": "reference/index.html",
+    "href": "reference/index.html",
+    "title": "API Reference",
+    "section": "",
+    "text": "aggregate\n\n\n\nsupersampling\n\n\n\naccumulate\n\n\n\n\n\n\n\n\n\n\nprojection.EquiRectangular\n\n\n\nprojection.LambertAzimutal\nLambert azimuthal equidistant projection with a parametrized center point.\n\n\nprojection.PolarNorth\nLambert azimuthal equidistant projection centered on the North Pole.\n\n\nprojection.PolarSouth\nLambert azimuthal equidistant projection centered on the South Pole.",
+    "crumbs": [
+      "API Reference"
+    ]
+  },
+  {
+    "objectID": "reference/index.html#quark",
+    "href": "reference/index.html#quark",
+    "title": "API Reference",
+    "section": "",
+    "text": "aggregate\n\n\n\nsupersampling\n\n\n\naccumulate",
+    "crumbs": [
+      "API Reference"
+    ]
+  },
+  {
+    "objectID": "reference/index.html#projection",
+    "href": "reference/index.html#projection",
+    "title": "API Reference",
+    "section": "",
+    "text": "projection.EquiRectangular\n\n\n\nprojection.LambertAzimutal\nLambert azimuthal equidistant projection with a parametrized center point.\n\n\nprojection.PolarNorth\nLambert azimuthal equidistant projection centered on the North Pole.\n\n\nprojection.PolarSouth\nLambert azimuthal equidistant projection centered on the South Pole.",
+    "crumbs": [
+      "API Reference"
+    ]
+  },
+  {
+    "objectID": "reference/accumulate.html",
+    "href": "reference/accumulate.html",
+    "title": "accumulate",
+    "section": "",
+    "text": "accumulate\n\n\nStateful accumulator classes for aggregation with pluggable summation strategies.\nEach Accumulator instance manages: - Internal sum/count state arrays - Accumulation of values via add() method - Finalization (computing mean, reshaping, storing results as attributes)\n\n\n\n\n\n\nName\nDescription\n\n\n\n\nKahanAccumulator\nKahan (compensated) accumulator for reduced floating-point error.\n\n\nSimpleAccumulator\nSimple accumulator using np.bincount.\n\n\n\n\n\naccumulate.KahanAccumulator(shape, sum_dtype=np.float64)\nKahan (compensated) accumulator for reduced floating-point error.\nTracks error compensation terms to improve numerical accuracy using JIT-compiled numba code for performance. Significantly reduces floating-point rounding errors compared to SimpleAccumulator.\nRequires numba to be installed. Will raise ImportError if not available.\n\n\n\n\n\nName\nDescription\n\n\n\n\nadd\nAccumulate using Kahan compensated summation.\n\n\n\n\n\naccumulate.KahanAccumulator.add(indices, values)\nAccumulate using Kahan compensated summation.\nApplies JIT-compiled Kahan algorithm directly to each value for numerical precision.\n\n\n\n\n\naccumulate.SimpleAccumulator(shape, sum_dtype=np.float64)\nSimple accumulator using np.bincount.\nFast and straightforward but subject to floating-point error accumulation. Suitable for most use cases where numerical precision is not critical.\n\n\n\n\n\nName\nDescription\n\n\n\n\nadd\nAccumulate using direct bincount summation.\n\n\n\n\n\naccumulate.SimpleAccumulator.add(indices, values)\nAccumulate using direct bincount summation.",
+    "crumbs": [
+      "quark",
+      "accumulate"
+    ]
+  },
+  {
+    "objectID": "reference/accumulate.html#quark._summation",
+    "href": "reference/accumulate.html#quark._summation",
+    "title": "accumulate",
+    "section": "",
+    "text": "Stateful accumulator classes for aggregation with pluggable summation strategies.\nEach Accumulator instance manages: - Internal sum/count state arrays - Accumulation of values via add() method - Finalization (computing mean, reshaping, storing results as attributes)",
+    "crumbs": [
+      "quark",
+      "accumulate"
+    ]
+  },
+  {
+    "objectID": "reference/accumulate.html#classes",
+    "href": "reference/accumulate.html#classes",
+    "title": "accumulate",
+    "section": "",
+    "text": "Name\nDescription\n\n\n\n\nKahanAccumulator\nKahan (compensated) accumulator for reduced floating-point error.\n\n\nSimpleAccumulator\nSimple accumulator using np.bincount.\n\n\n\n\n\naccumulate.KahanAccumulator(shape, sum_dtype=np.float64)\nKahan (compensated) accumulator for reduced floating-point error.\nTracks error compensation terms to improve numerical accuracy using JIT-compiled numba code for performance. Significantly reduces floating-point rounding errors compared to SimpleAccumulator.\nRequires numba to be installed. Will raise ImportError if not available.\n\n\n\n\n\nName\nDescription\n\n\n\n\nadd\nAccumulate using Kahan compensated summation.\n\n\n\n\n\naccumulate.KahanAccumulator.add(indices, values)\nAccumulate using Kahan compensated summation.\nApplies JIT-compiled Kahan algorithm directly to each value for numerical precision.\n\n\n\n\n\naccumulate.SimpleAccumulator(shape, sum_dtype=np.float64)\nSimple accumulator using np.bincount.\nFast and straightforward but subject to floating-point error accumulation. Suitable for most use cases where numerical precision is not critical.\n\n\n\n\n\nName\nDescription\n\n\n\n\nadd\nAccumulate using direct bincount summation.\n\n\n\n\n\naccumulate.SimpleAccumulator.add(indices, values)\nAccumulate using direct bincount summation.",
+    "crumbs": [
+      "quark",
+      "accumulate"
+    ]
+  },
+  {
+    "objectID": "reference/projection.EquiRectangular.html",
+    "href": "reference/projection.EquiRectangular.html",
+    "title": "projection.EquiRectangular",
+    "section": "",
+    "text": "projection.EquiRectangular(width, height, area=None)\n\n\n\n\n\nName\nDescription\n\n\n\n\nget_coordinates\nGet the latitude and longitude coordinates for each pixel in the equirectangular projection.\n\n\nis_in_bounds\nCheck if coordinates are within the projection area bounds.\n\n\nis_valid_index\nCheck if pixel indexes are valid (not FILL_VALUE).\n\n\nproject_to_indexes\nProjects latitude and longitude coordinates to pixel indexes in the equirectangular projection.\n\n\n\n\n\nprojection.EquiRectangular.get_coordinates()\nGet the latitude and longitude coordinates for each pixel in the equirectangular projection. Returns coordinates based on the defined area bounds.\nReturns: tuple[np.ndarray, np.ndarray]: The latitude and longitude coordinates for each pixel in the equirectangular projection.\n\n\n\nprojection.EquiRectangular.is_in_bounds(latitude, longitude)\nCheck if coordinates are within the projection area bounds.\nArgs: latitude (float|np.ndarray): The latitude value(s) to check. longitude (float|np.ndarray): The longitude value(s) to check.\nReturns: np.ndarray: Boolean array indicating which coordinates are in bounds.\n\n\n\nprojection.EquiRectangular.is_valid_index(x_indexes, y_indexes)\nCheck if pixel indexes are valid (not FILL_VALUE).\nArgs: x_indexes (np.ndarray): The x pixel indexes to check. y_indexes (np.ndarray): The y pixel indexes to check.\nReturns: np.ndarray: Boolean array indicating which indexes are valid (not out-of-bounds).\n\n\n\nprojection.EquiRectangular.project_to_indexes(latitude, longitude)\nProjects latitude and longitude coordinates to pixel indexes in the equirectangular projection.\nArgs: latitude (float|np.ndarray): The latitude value(s) to project. longitude (float|np.ndarray): The longitude value(s) to project.\nReturns: tuple[np.ndarray, np.ndarray]: The x and y pixel indexes in the equirectangular projection. Returns (FILL_VALUE, FILL_VALUE) for coordinates outside the area. Check with is_valid_index() or compare against projection.FILL_VALUE.",
+    "crumbs": [
+      "projection",
+      "projection.EquiRectangular"
+    ]
+  },
+  {
+    "objectID": "reference/projection.EquiRectangular.html#methods",
+    "href": "reference/projection.EquiRectangular.html#methods",
+    "title": "projection.EquiRectangular",
+    "section": "",
+    "text": "Name\nDescription\n\n\n\n\nget_coordinates\nGet the latitude and longitude coordinates for each pixel in the equirectangular projection.\n\n\nis_in_bounds\nCheck if coordinates are within the projection area bounds.\n\n\nis_valid_index\nCheck if pixel indexes are valid (not FILL_VALUE).\n\n\nproject_to_indexes\nProjects latitude and longitude coordinates to pixel indexes in the equirectangular projection.\n\n\n\n\n\nprojection.EquiRectangular.get_coordinates()\nGet the latitude and longitude coordinates for each pixel in the equirectangular projection. Returns coordinates based on the defined area bounds.\nReturns: tuple[np.ndarray, np.ndarray]: The latitude and longitude coordinates for each pixel in the equirectangular projection.\n\n\n\nprojection.EquiRectangular.is_in_bounds(latitude, longitude)\nCheck if coordinates are within the projection area bounds.\nArgs: latitude (float|np.ndarray): The latitude value(s) to check. longitude (float|np.ndarray): The longitude value(s) to check.\nReturns: np.ndarray: Boolean array indicating which coordinates are in bounds.\n\n\n\nprojection.EquiRectangular.is_valid_index(x_indexes, y_indexes)\nCheck if pixel indexes are valid (not FILL_VALUE).\nArgs: x_indexes (np.ndarray): The x pixel indexes to check. y_indexes (np.ndarray): The y pixel indexes to check.\nReturns: np.ndarray: Boolean array indicating which indexes are valid (not out-of-bounds).\n\n\n\nprojection.EquiRectangular.project_to_indexes(latitude, longitude)\nProjects latitude and longitude coordinates to pixel indexes in the equirectangular projection.\nArgs: latitude (float|np.ndarray): The latitude value(s) to project. longitude (float|np.ndarray): The longitude value(s) to project.\nReturns: tuple[np.ndarray, np.ndarray]: The x and y pixel indexes in the equirectangular projection. Returns (FILL_VALUE, FILL_VALUE) for coordinates outside the area. Check with is_valid_index() or compare against projection.FILL_VALUE.",
+    "crumbs": [
+      "projection",
+      "projection.EquiRectangular"
+    ]
+  },
+  {
+    "objectID": "articles/getting-started.html",
+    "href": "articles/getting-started.html",
+    "title": "Getting Started",
+    "section": "",
+    "text": "Install quark from the GitHub repository:\nhyp add --hygeos quark",
+    "crumbs": [
+      "Getting Started"
+    ]
+  },
+  {
+    "objectID": "articles/getting-started.html#installation",
+    "href": "articles/getting-started.html#installation",
+    "title": "Getting Started",
+    "section": "",
+    "text": "Install quark from the GitHub repository:\nhyp add --hygeos quark",
+    "crumbs": [
+      "Getting Started"
+    ]
+  },
+  {
+    "objectID": "articles/getting-started.html#basic-workflow",
+    "href": "articles/getting-started.html#basic-workflow",
+    "title": "Getting Started",
+    "section": "Basic workflow",
+    "text": "Basic workflow\n…",
+    "crumbs": [
+      "Getting Started"
+    ]
+  },
+  {
+    "objectID": "articles/reproject-to-polar.html",
+    "href": "articles/reproject-to-polar.html",
+    "title": "Reprojecting to Polar View",
+    "section": "",
+    "text": "This tutorial shows how to reproject a global equirectangular dataset to an azimuthal equidistant projection centered on an arbitrary point, using LambertAzimutal.",
+    "crumbs": [
+      "Reprojecting to Polar View"
+    ]
+  },
+  {
+    "objectID": "articles/reproject-to-polar.html#scenario",
+    "href": "articles/reproject-to-polar.html#scenario",
+    "title": "Reprojecting to Polar View",
+    "section": "Scenario",
+    "text": "Scenario\nWe have a global OLCI daily PAR dataset at ~0.02° resolution (8640×4320) and want to reproject it to a focused polar-style view centered on a region of interest.",
+    "crumbs": [
+      "Reprojecting to Polar View"
+    ]
+  },
+  {
+    "objectID": "articles/reproject-to-polar.html#step-1-open-the-source-dataset",
+    "href": "articles/reproject-to-polar.html#step-1-open-the-source-dataset",
+    "title": "Reprojecting to Polar View",
+    "section": "Step 1 — Open the source dataset",
+    "text": "Step 1 — Open the source dataset\nimport xarray as xr\n\nds = xr.open_dataset(\"OLCI-AB-20230615__NEQ_8640__L3-dailyPAR.nc\")",
+    "crumbs": [
+      "Reprojecting to Polar View"
+    ]
+  },
+  {
+    "objectID": "articles/reproject-to-polar.html#step-2-create-the-projection",
+    "href": "articles/reproject-to-polar.html#step-2-create-the-projection",
+    "title": "Reprojecting to Polar View",
+    "section": "Step 2 — Create the projection",
+    "text": "Step 2 — Create the projection\nLambertAzimutal lets you pick any center point, radius, and rotation:\nfrom quark.projection.lambertazimutal import LambertAzimutal\n\nprojection = LambertAzimutal(\n    width=2000,\n    height=2000,\n    center_latitude=55.0,    # center of view\n    center_longitude=-2.0,\n    radius=60.0,             # angular radius in degrees\n    rotation=25.0,           # clockwise rotation\n)\nFor pole-centered views, use the convenience classes PolarNorth and PolarSouth:\nfrom quark.projection.polar import PolarSouth\n\nprojection = PolarSouth(\n    width=2000,\n    height=2000,\n    radius_deg=45.0,\n    rotation_deg=0.0,\n)",
+    "crumbs": [
+      "Reprojecting to Polar View"
+    ]
+  },
+  {
+    "objectID": "articles/reproject-to-polar.html#step-3-configure-supersampling",
+    "href": "articles/reproject-to-polar.html#step-3-configure-supersampling",
+    "title": "Reprojecting to Polar View",
+    "section": "Step 3 — Configure supersampling",
+    "text": "Step 3 — Configure supersampling\nSupersampling improves coverage when the source footprint is large relative to the target grid. ConstantSuperSampler is the safer choice for irregular or global data:\nfrom quark.supersampling import ConstantSuperSampler\n\nsupersampler = ConstantSuperSampler(\n    factor=2,\n    pixel_width=\"1km\",\n    project_center=True,\n)",
+    "crumbs": [
+      "Reprojecting to Polar View"
+    ]
+  },
+  {
+    "objectID": "articles/reproject-to-polar.html#step-4-run-the-aggregation",
+    "href": "articles/reproject-to-polar.html#step-4-run-the-aggregation",
+    "title": "Reprojecting to Polar View",
+    "section": "Step 4 — Run the aggregation",
+    "text": "Step 4 — Run the aggregation\nimport numpy as np\nfrom quark.aggregate import Aggregator\n\nagg = Aggregator(\n    projection=projection,\n    datasets=[ds],\n    variables=[\"daily_planar_PAR_(0+)\"],\n    supersampler=supersampler,\n    return_counts=True,\n    dtype=np.float32,\n)\n\nresult = agg.compute()\nresult.to_netcdf(\"output_polar.nc\")",
+    "crumbs": [
+      "Reprojecting to Polar View"
+    ]
+  },
+  {
+    "objectID": "articles/reproject-to-polar.html#result",
+    "href": "articles/reproject-to-polar.html#result",
+    "title": "Reprojecting to Polar View",
+    "section": "Result",
+    "text": "Result\nThe output dataset contains the reprojected data on a 2000×2000 grid, with pixels outside the circular projection area set to fill values. A _count variable tracks how many source pixels contributed to each target pixel.",
+    "crumbs": [
+      "Reprojecting to Polar View"
+    ]
+  },
+  {
+    "objectID": "articles/reproject-to-polar.html#tips",
+    "href": "articles/reproject-to-polar.html#tips",
+    "title": "Reprojecting to Polar View",
+    "section": "Tips",
+    "text": "Tips\n\nUse a smaller radius to zoom in on a region.\nAdjust rotation to orient the view so a specific meridian points downward.\nFor high-precision accumulation, add sum_method=\"kahan\" (requires numba).",
+    "crumbs": [
+      "Reprojecting to Polar View"
+    ]
+  },
+  {
+    "objectID": "articles/reproject-l1-equirectangular.html",
+    "href": "articles/reproject-l1-equirectangular.html",
+    "title": "Reprojecting L1 Data to Equirectangular",
+    "section": "",
+    "text": "This tutorial shows how to reproject L1 swath data (with 2-D latitude/longitude arrays) to a regular equirectangular grid, optionally focused on a site of interest.",
+    "crumbs": [
+      "Reprojecting L1 Data to Equirectangular"
+    ]
+  },
+  {
+    "objectID": "articles/reproject-l1-equirectangular.html#scenario",
+    "href": "articles/reproject-l1-equirectangular.html#scenario",
+    "title": "Reprojecting L1 Data to Equirectangular",
+    "section": "Scenario",
+    "text": "Scenario\nWe have an ECOSTRESS LST swath dataset with 2-D geolocation arrays and want to reproject it to a regular grid centered on a specific location.",
+    "crumbs": [
+      "Reprojecting L1 Data to Equirectangular"
+    ]
+  },
+  {
+    "objectID": "articles/reproject-l1-equirectangular.html#step-1-open-the-source-dataset",
+    "href": "articles/reproject-l1-equirectangular.html#step-1-open-the-source-dataset",
+    "title": "Reprojecting L1 Data to Equirectangular",
+    "section": "Step 1 — Open the source dataset",
+    "text": "Step 1 — Open the source dataset\nimport xarray as xr\n\nds = xr.open_dataset(\"ECOSTRESS__UNPROJ__Lille__2024-08-01__002.nc\")",
+    "crumbs": [
+      "Reprojecting L1 Data to Equirectangular"
+    ]
+  },
+  {
+    "objectID": "articles/reproject-l1-equirectangular.html#step-2-define-the-output-area",
+    "href": "articles/reproject-l1-equirectangular.html#step-2-define-the-output-area",
+    "title": "Reprojecting L1 Data to Equirectangular",
+    "section": "Step 2 — Define the output area",
+    "text": "Step 2 — Define the output area\nUse bbox_from_point to create a bounding box around a site of interest:\nfrom quark.utils import bbox_from_point, get_size_from_bbox\n\nsite_lat, site_lon = 50.6292, 3.0573  # Lille, France\narea = bbox_from_point(site_lat, site_lon, width=0.5, height=0.5)\n\n# Compute grid dimensions from desired resolution\nwidth, height = get_size_from_bbox(area, resolution=\"70m\")\nAlternatively, derive the bounding box from the data itself:\nfrom quark.utils import bbox_area\n\narea = bbox_area(ds, margin=0.05)",
+    "crumbs": [
+      "Reprojecting L1 Data to Equirectangular"
+    ]
+  },
+  {
+    "objectID": "articles/reproject-l1-equirectangular.html#step-3-create-the-projection",
+    "href": "articles/reproject-l1-equirectangular.html#step-3-create-the-projection",
+    "title": "Reprojecting L1 Data to Equirectangular",
+    "section": "Step 3 — Create the projection",
+    "text": "Step 3 — Create the projection\nfrom quark.projection.equirectangular import EquiRectangular\n\nprojection = EquiRectangular(width=width, height=height, area=area)",
+    "crumbs": [
+      "Reprojecting L1 Data to Equirectangular"
+    ]
+  },
+  {
+    "objectID": "articles/reproject-l1-equirectangular.html#step-4-configure-supersampling",
+    "href": "articles/reproject-l1-equirectangular.html#step-4-configure-supersampling",
+    "title": "Reprojecting L1 Data to Equirectangular",
+    "section": "Step 4 — Configure supersampling",
+    "text": "Step 4 — Configure supersampling\nFor swath data, ConstantSuperSampler is recommended:\nfrom quark.supersampling import ConstantSuperSampler\n\nsupersampler = ConstantSuperSampler(\n    factor=2,\n    pixel_width=\"70m\",\n    project_center=True,\n)\n\n\n\n\n\n\nWarning\n\n\n\nAvoid SpatialSuperSampler for unstructured swaths or badly ordered 2-D arrays — it assumes array neighbors are spatial neighbors.",
+    "crumbs": [
+      "Reprojecting L1 Data to Equirectangular"
+    ]
+  },
+  {
+    "objectID": "articles/reproject-l1-equirectangular.html#step-5-run-the-aggregation",
+    "href": "articles/reproject-l1-equirectangular.html#step-5-run-the-aggregation",
+    "title": "Reprojecting L1 Data to Equirectangular",
+    "section": "Step 5 — Run the aggregation",
+    "text": "Step 5 — Run the aggregation\nimport numpy as np\nfrom quark.aggregate import Aggregator\n\nagg = Aggregator(\n    projection=projection,\n    datasets=[ds],\n    supersampler=supersampler,\n    return_counts=True,\n    dtype=np.float32,\n)\n\nresult = agg.compute()\nresult.to_netcdf(\"ECOSTRESS__REPROJ__Lille__2024-08-01__002.nc\")",
+    "crumbs": [
+      "Reprojecting L1 Data to Equirectangular"
+    ]
+  },
+  {
+    "objectID": "articles/reproject-l1-equirectangular.html#result",
+    "href": "articles/reproject-l1-equirectangular.html#result",
+    "title": "Reprojecting L1 Data to Equirectangular",
+    "section": "Result",
+    "text": "Result\nThe output is a regular equirectangular grid covering the bounding box, with aggregated LST values and a _count variable indicating source pixel coverage per target pixel.",
+    "crumbs": [
+      "Reprojecting L1 Data to Equirectangular"
+    ]
+  },
+  {
+    "objectID": "articles/reproject-l1-equirectangular.html#tips",
+    "href": "articles/reproject-l1-equirectangular.html#tips",
+    "title": "Reprojecting L1 Data to Equirectangular",
+    "section": "Tips",
+    "text": "Tips\n\nAdjust resolution in get_size_from_bbox to control output pixel size.\nUse sum_method=\"kahan\" for higher numerical precision (requires numba).\nPass multiple datasets to datasets=[ds1, ds2] to accumulate across scenes.",
+    "crumbs": [
+      "Reprojecting L1 Data to Equirectangular"
+    ]
+  },
+  {
+    "objectID": "reference/projection.PolarNorth.html",
+    "href": "reference/projection.PolarNorth.html",
+    "title": "projection.PolarNorth",
+    "section": "",
+    "text": "projection.PolarNorth\nprojection.PolarNorth(width, height, radius_deg=90.0, rotation_deg=0.0)\nLambert azimuthal equidistant projection centered on the North Pole.\nConvenience subclass of :class:LambertAzimutal with the center fixed at latitude 90° (North Pole) and longitude 0°. Distances and directions from the pole are preserved, making this projection ideal for visualizing the Arctic region or any area within a given angular radius of the pole.\nThe projection maps a circular cap around the pole onto a square image. Meridians radiate outward from the center, and parallels appear as concentric circles.\nSee: Azimuthal equidistant projection on Wikipedia",
+    "crumbs": [
+      "projection",
+      "projection.PolarNorth"
+    ]
+  },
+  {
+    "objectID": "reference/aggregate.html",
+    "href": "reference/aggregate.html",
+    "title": "aggregate",
+    "section": "",
+    "text": "aggregate\n\n\nCore aggregation engine: reproject and accumulate N-dimensional xarray Datasets onto a target projection grid.\nIteration 1 (current): - In-memory mode only (vars_batch_size must be None) - No supersampling (supersampling must be 1) - naive sum_method only (“kahan” accepted by interface, raises NotImplementedError) - Full NDIMS support: variables may be 2-D, 3-D, 4-D … (lat/lon rasters are always 2-D; extra dims are preserved in output)\n\n\n\n\n\n\nName\nDescription\n\n\n\n\nAggregator\nStateful aggregation pipeline.\n\n\n\n\n\naggregate.Aggregator(\n    datasets,\n    projection,\n    lat_name='latitude',\n    lon_name='longitude',\n    variables=None,\n    fail_on_schema_mismatch=True,\n    sum_method='simple',\n    skipna=True,\n    supersampler=None,\n    return_counts=False,\n    return_sums=False,\n    dtype=None,\n)\nStateful aggregation pipeline.\nEncapsulates projection, configuration, variable metadata, and accumulators. Eliminates the need to pass dozens of arguments through helper functions.\n\n\n\n\n\nName\nDescription\n\n\n\n\ncompute\nProcess all datasets and return the aggregated result.\n\n\nprocess_dataset\nProcess one dataset: project and accumulate all variables.\n\n\n\n\n\naggregate.Aggregator.compute()\nProcess all datasets and return the aggregated result.\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nxr.Dataset\nAggregated dataset with coordinates and attributes\n\n\n\n\n\n\n\naggregate.Aggregator.process_dataset(ds)\nProcess one dataset: project and accumulate all variables.\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nds\nxr.Dataset\nSource dataset to process\nrequired",
+    "crumbs": [
+      "quark",
+      "aggregate"
+    ]
+  },
+  {
+    "objectID": "reference/aggregate.html#quark.aggregate-1",
+    "href": "reference/aggregate.html#quark.aggregate-1",
+    "title": "aggregate",
+    "section": "",
+    "text": "Core aggregation engine: reproject and accumulate N-dimensional xarray Datasets onto a target projection grid.\nIteration 1 (current): - In-memory mode only (vars_batch_size must be None) - No supersampling (supersampling must be 1) - naive sum_method only (“kahan” accepted by interface, raises NotImplementedError) - Full NDIMS support: variables may be 2-D, 3-D, 4-D … (lat/lon rasters are always 2-D; extra dims are preserved in output)",
+    "crumbs": [
+      "quark",
+      "aggregate"
+    ]
+  },
+  {
+    "objectID": "reference/aggregate.html#classes",
+    "href": "reference/aggregate.html#classes",
+    "title": "aggregate",
+    "section": "",
+    "text": "Name\nDescription\n\n\n\n\nAggregator\nStateful aggregation pipeline.\n\n\n\n\n\naggregate.Aggregator(\n    datasets,\n    projection,\n    lat_name='latitude',\n    lon_name='longitude',\n    variables=None,\n    fail_on_schema_mismatch=True,\n    sum_method='simple',\n    skipna=True,\n    supersampler=None,\n    return_counts=False,\n    return_sums=False,\n    dtype=None,\n)\nStateful aggregation pipeline.\nEncapsulates projection, configuration, variable metadata, and accumulators. Eliminates the need to pass dozens of arguments through helper functions.\n\n\n\n\n\nName\nDescription\n\n\n\n\ncompute\nProcess all datasets and return the aggregated result.\n\n\nprocess_dataset\nProcess one dataset: project and accumulate all variables.\n\n\n\n\n\naggregate.Aggregator.compute()\nProcess all datasets and return the aggregated result.\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nxr.Dataset\nAggregated dataset with coordinates and attributes\n\n\n\n\n\n\n\naggregate.Aggregator.process_dataset(ds)\nProcess one dataset: project and accumulate all variables.\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nds\nxr.Dataset\nSource dataset to process\nrequired",
+    "crumbs": [
+      "quark",
+      "aggregate"
+    ]
+  },
+  {
+    "objectID": "reference/supersampling.html",
+    "href": "reference/supersampling.html",
+    "title": "supersampling",
+    "section": "",
+    "text": "supersampling\n\n\nSupersampling utilities for subpixel coordinate generation.\nProvides: - SpatialSupersampling: XYZ-based adaptive pixel widths (spherical geometry) - ConstantSupersampling: Fixed meter-based spacing\n\n\n\n\n\n\nName\nDescription\n\n\n\n\nConstantSuperSampler\nConstant-spacing supersampling.\n\n\nSpatialSuperSampler\nXYZ-based adaptive supersampling.\n\n\n\n\n\nsupersampling.ConstantSuperSampler(factor, pixel_width, project_center=True)\nConstant-spacing supersampling.\nUses fixed meter-based pixel width for uniform subpixel spacing.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nfactor\nint\nSupersampling factor (integer &gt;= 2). Creates a factor×factor subpixel grid.\nrequired\n\n\npixel_width\nstr\nPixel width string (e.g., “1km”, “500m”)\nrequired\n\n\nproject_center\nbool\nWhether to project the center pixel (offset 0,0)\nTrue\n\n\n\n\n\n\n&gt;&gt;&gt; supersampler = ConstantSupersampling(factor=2, pixel_width=\"1km\")  # 4 subpixels\n&gt;&gt;&gt; supersampler = ConstantSupersampling(factor=10, pixel_width=\"100m\")  # 100 subpixels\n&gt;&gt;&gt; lat_sub, lon_sub, slices = supersampler.compute_coords(lat, lon, 0, 1)\n\n\n\n\n\n\nName\nDescription\n\n\n\n\ncompute_coords\nCompute constant-spacing subpixel coordinates.\n\n\n\n\n\nsupersampling.ConstantSuperSampler.compute_coords(lat, lon, i, j)\nCompute constant-spacing subpixel coordinates.\n\n\n\n\n\nsupersampling.SpatialSuperSampler(factor, project_center=True)\nXYZ-based adaptive supersampling.\nComputes per-pixel angular widths from 3D Cartesian neighbor distances, accounting for spherical geometry and latitude-dependent spacing. Processes the full grid (no edge exclusion)\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nfactor\nint\nSupersampling factor (integer &gt;= 2). Creates a factor×factor subpixel grid.\nrequired\n\n\nproject_center\nbool\nWhether to project the center pixel (offset 0,0)\nTrue\n\n\n\n\n\n\n&gt;&gt;&gt; supersampler = SpatialSupersampling(factor=2)  # 4 subpixels\n&gt;&gt;&gt; supersampler = SpatialSupersampling(factor=5)  # 25 subpixels\n&gt;&gt;&gt; supersampler.prepare(lat, lon)\n&gt;&gt;&gt; lat_sub, lon_sub, slices = supersampler.compute_coords(lat, lon, 0, 0)\n\n\n\n\n\n\nName\nDescription\n\n\n\n\ncompute_coords\nCompute adaptive subpixel coordinates.\n\n\nprepare\nCompute pixel widths once per dataset.\n\n\n\n\n\nsupersampling.SpatialSuperSampler.compute_coords(lat, lon, i, j)\nCompute adaptive subpixel coordinates.\n\n\n\nsupersampling.SpatialSuperSampler.prepare(lat, lon)\nCompute pixel widths once per dataset.",
+    "crumbs": [
+      "quark",
+      "supersampling"
+    ]
+  },
+  {
+    "objectID": "reference/supersampling.html#quark.supersampling-1",
+    "href": "reference/supersampling.html#quark.supersampling-1",
+    "title": "supersampling",
+    "section": "",
+    "text": "Supersampling utilities for subpixel coordinate generation.\nProvides: - SpatialSupersampling: XYZ-based adaptive pixel widths (spherical geometry) - ConstantSupersampling: Fixed meter-based spacing",
+    "crumbs": [
+      "quark",
+      "supersampling"
+    ]
+  },
+  {
+    "objectID": "reference/supersampling.html#classes",
+    "href": "reference/supersampling.html#classes",
+    "title": "supersampling",
+    "section": "",
+    "text": "Name\nDescription\n\n\n\n\nConstantSuperSampler\nConstant-spacing supersampling.\n\n\nSpatialSuperSampler\nXYZ-based adaptive supersampling.\n\n\n\n\n\nsupersampling.ConstantSuperSampler(factor, pixel_width, project_center=True)\nConstant-spacing supersampling.\nUses fixed meter-based pixel width for uniform subpixel spacing.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nfactor\nint\nSupersampling factor (integer &gt;= 2). Creates a factor×factor subpixel grid.\nrequired\n\n\npixel_width\nstr\nPixel width string (e.g., “1km”, “500m”)\nrequired\n\n\nproject_center\nbool\nWhether to project the center pixel (offset 0,0)\nTrue\n\n\n\n\n\n\n&gt;&gt;&gt; supersampler = ConstantSupersampling(factor=2, pixel_width=\"1km\")  # 4 subpixels\n&gt;&gt;&gt; supersampler = ConstantSupersampling(factor=10, pixel_width=\"100m\")  # 100 subpixels\n&gt;&gt;&gt; lat_sub, lon_sub, slices = supersampler.compute_coords(lat, lon, 0, 1)\n\n\n\n\n\n\nName\nDescription\n\n\n\n\ncompute_coords\nCompute constant-spacing subpixel coordinates.\n\n\n\n\n\nsupersampling.ConstantSuperSampler.compute_coords(lat, lon, i, j)\nCompute constant-spacing subpixel coordinates.\n\n\n\n\n\nsupersampling.SpatialSuperSampler(factor, project_center=True)\nXYZ-based adaptive supersampling.\nComputes per-pixel angular widths from 3D Cartesian neighbor distances, accounting for spherical geometry and latitude-dependent spacing. Processes the full grid (no edge exclusion)\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nfactor\nint\nSupersampling factor (integer &gt;= 2). Creates a factor×factor subpixel grid.\nrequired\n\n\nproject_center\nbool\nWhether to project the center pixel (offset 0,0)\nTrue\n\n\n\n\n\n\n&gt;&gt;&gt; supersampler = SpatialSupersampling(factor=2)  # 4 subpixels\n&gt;&gt;&gt; supersampler = SpatialSupersampling(factor=5)  # 25 subpixels\n&gt;&gt;&gt; supersampler.prepare(lat, lon)\n&gt;&gt;&gt; lat_sub, lon_sub, slices = supersampler.compute_coords(lat, lon, 0, 0)\n\n\n\n\n\n\nName\nDescription\n\n\n\n\ncompute_coords\nCompute adaptive subpixel coordinates.\n\n\nprepare\nCompute pixel widths once per dataset.\n\n\n\n\n\nsupersampling.SpatialSuperSampler.compute_coords(lat, lon, i, j)\nCompute adaptive subpixel coordinates.\n\n\n\nsupersampling.SpatialSuperSampler.prepare(lat, lon)\nCompute pixel widths once per dataset.",
+    "crumbs": [
+      "quark",
+      "supersampling"
+    ]
+  },
+  {
+    "objectID": "reference/projection.LambertAzimutal.html",
+    "href": "reference/projection.LambertAzimutal.html",
+    "title": "projection.LambertAzimutal",
+    "section": "",
+    "text": "projection.LambertAzimutal(\n    width,\n    height,\n    center_latitude=90.0,\n    center_longitude=0.0,\n    radius=None,\n    rotation=0.0,\n)\nLambert azimuthal equidistant projection with a parametrized center point.\nThis projection preserves distances and directions from the center point. It maps a hemisphere (or any angular radius) centered on an arbitrary latitude/longitude to a square image.\nSee: Azimuthal equidistant projection on Wikipedia\n\n\n\n\n\nName\nDescription\n\n\n\n\nget_coordinates\nGet the latitude and longitude for each pixel in the projection.\n\n\nis_in_bounds\nCheck if coordinates are within the projection radius.\n\n\nis_valid_index\nCheck if pixel indexes are valid (not FILL_VALUE).\n\n\nproject_to_indexes\nProject latitude and longitude coordinates to pixel indexes in the\n\n\n\n\n\nprojection.LambertAzimutal.get_coordinates()\nGet the latitude and longitude for each pixel in the projection.\nReturns a meshgrid of coordinates for the entire image. Pixels outside the circular projection area have NaN coordinates.\nReturns: tuple[np.ndarray, np.ndarray]: - latitude: 2D array of latitude values for each pixel. - longitude: 2D array of longitude values for each pixel.\n\n\n\nprojection.LambertAzimutal.is_in_bounds(latitude, longitude)\nCheck if coordinates are within the projection radius.\nArgs: latitude: Latitude value(s) in degrees. longitude: Longitude value(s) in degrees.\nReturns: np.ndarray: Boolean array indicating which coordinates are within the projection radius.\n\n\n\nprojection.LambertAzimutal.is_valid_index(x_indexes, y_indexes)\nCheck if pixel indexes are valid (not FILL_VALUE).\nArgs: x_indexes: The x pixel indexes to check. y_indexes: The y pixel indexes to check.\nReturns: np.ndarray: Boolean array indicating which indexes are valid.\n\n\n\nprojection.LambertAzimutal.project_to_indexes(latitude, longitude)\nProject latitude and longitude coordinates to pixel indexes in the azimuthal equidistant projection.\nArgs: latitude: Latitude value(s) in degrees. longitude: Longitude value(s) in degrees.\nReturns: tuple[np.ndarray, np.ndarray]: (x_indexes, y_indexes) — pixel coordinates. Returns (FILL_VALUE, FILL_VALUE) for coordinates outside the projection radius. Check validity with is_valid_index().",
+    "crumbs": [
+      "projection",
+      "projection.LambertAzimutal"
+    ]
+  },
+  {
+    "objectID": "reference/projection.LambertAzimutal.html#methods",
+    "href": "reference/projection.LambertAzimutal.html#methods",
+    "title": "projection.LambertAzimutal",
+    "section": "",
+    "text": "Name\nDescription\n\n\n\n\nget_coordinates\nGet the latitude and longitude for each pixel in the projection.\n\n\nis_in_bounds\nCheck if coordinates are within the projection radius.\n\n\nis_valid_index\nCheck if pixel indexes are valid (not FILL_VALUE).\n\n\nproject_to_indexes\nProject latitude and longitude coordinates to pixel indexes in the\n\n\n\n\n\nprojection.LambertAzimutal.get_coordinates()\nGet the latitude and longitude for each pixel in the projection.\nReturns a meshgrid of coordinates for the entire image. Pixels outside the circular projection area have NaN coordinates.\nReturns: tuple[np.ndarray, np.ndarray]: - latitude: 2D array of latitude values for each pixel. - longitude: 2D array of longitude values for each pixel.\n\n\n\nprojection.LambertAzimutal.is_in_bounds(latitude, longitude)\nCheck if coordinates are within the projection radius.\nArgs: latitude: Latitude value(s) in degrees. longitude: Longitude value(s) in degrees.\nReturns: np.ndarray: Boolean array indicating which coordinates are within the projection radius.\n\n\n\nprojection.LambertAzimutal.is_valid_index(x_indexes, y_indexes)\nCheck if pixel indexes are valid (not FILL_VALUE).\nArgs: x_indexes: The x pixel indexes to check. y_indexes: The y pixel indexes to check.\nReturns: np.ndarray: Boolean array indicating which indexes are valid.\n\n\n\nprojection.LambertAzimutal.project_to_indexes(latitude, longitude)\nProject latitude and longitude coordinates to pixel indexes in the azimuthal equidistant projection.\nArgs: latitude: Latitude value(s) in degrees. longitude: Longitude value(s) in degrees.\nReturns: tuple[np.ndarray, np.ndarray]: (x_indexes, y_indexes) — pixel coordinates. Returns (FILL_VALUE, FILL_VALUE) for coordinates outside the projection radius. Check validity with is_valid_index().",
+    "crumbs": [
+      "projection",
+      "projection.LambertAzimutal"
+    ]
+  }
+]
